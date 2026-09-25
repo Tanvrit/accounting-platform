@@ -1,330 +1,124 @@
 [versions]
-# AGP 9.4.1 needs Gradle >= 9.6.0 — bumped in the same commit as the 9.7.1 wrapper.
-agp = "9.4.1"
-koinAndroid = "4.2.2"
+# ─────────────────────────────────────────────────────────────────────────────
+# Tanvrit pins (split, deliberately — core and sdk publish from different repos)
+#
+# Verified before pinning (2026-09-25), per the monorepo rule "verify the bytes
+# for the target that ships, not the status code":
+#   core / core-accounting / accounting / ui / auth / business / storage at 3.0.7
+#   all resolve root POM from https://maven.tanvrit.com (HTTP 200), and
+#   accounting-wasm-js-3.0.7.klib was fetched whole and confirmed to carry the
+#   com.tanvrit.accounting.{network,handler,viewmodel} packages
+#   (AccountingBudgetNetwork, ReconciliationNetwork, …).
+#
+# NOTE: the SDK module line does NOT exist at 3.0.5 — core 3.0.5 was published
+# in Phase 1/2 (MASTER_PLAN) but every SDK module (accounting/ui/auth/business/
+# storage) is 404 at 3.0.5 and first resolves at 3.0.6. 3.0.7 is the current
+# verified line and matches what platforms/ai consumes (its catalog comment
+# records 108/108 HTTP 200 across all target variants for 3.0.7).
+# SDK 3.0.6+ is a Kotlin 2.4.20 / Compose Multiplatform 1.12.1 / AGP 9.4.1
+# build; the kotlin / compose-multiplatform / agp pins below move WITH the
+# tanvrit pin, never one side first (an SDK klib compiled against Compose
+# 1.12.1 linked into an app on 1.11.x builds green and dies at boot with
+# IrLinkageError).
+tanvrit = "3.0.7"
+# core ONLY — published from the separate core/ repo, keeps its own ref so it
+# may run ahead of `tanvrit`. Do not collapse the two refs; the split pin is
+# load-bearing (see docs/decisions, "core and sdk version independently").
+tanvrit-core = "3.0.7"
+
+# Toolchain (tracks the SDK's build toolchain — see the block above).
 kotlin = "2.4.20"
-kotlinxCoroutinesCore = "1.11.0"
-kotlinxCoroutinesTest = "1.11.0"
-kotlinxSerializationJson = "1.11.0"
-kotlinxDatetime = "0.8.0"
-kotlinxIo = "0.4.0"
-# COMPILER PLUGIN version of kotlinx.serialization (org.jetbrains.kotlin.plugin.serialization) —
-# it ships with the Kotlin compiler and MUST equal `kotlin`; the runtime library version is
-# `kotlinxSerializationJson` above. (Was mislabelled `kotlinxSerializationCore`, 06#20.)
-serializationPlugin = "2.4.20"
+compose-multiplatform = "1.12.1"
+# JetBrains material3 does not ship on the CMP version line; 1.12.0-alpha03 is
+# the release the CMP 1.12.1 notes pair with it.
+compose-material3 = "1.12.0-alpha03"
+# material-icons-* froze at 1.7.3 upstream; not on the CMP version line.
+compose-material-icons = "1.7.3"
+agp = "9.4.1"
+
+# Libraries
 ktor = "3.5.2"
-# Kept in lockstep with `ktor` — a skewed Darwin engine (3.4.3 vs core 3.5.1)
-# mixes plugin/runtime versions inside the iOS client (kmp-core-003).
-ktorDarwin = "3.5.2"
-# GOOGLE androidx.navigation3:navigation3-runtime (core has no JetBrains navigation3-ui).
-# Pinned to exactly what org.jetbrains.androidx.navigation3:navigation3-ui:1.2.0-beta01 declares in
-# its .module on Maven Central (every variant: `navigation3-runtime` requires 1.2.0-beta01), which is
-# the nav3-ui the sdk builds with — so core's `api` edge and the sdk's UI layer agree on one runtime
-# instead of Gradle silently upgrading core's pin underneath it.
-androidx-navigation3 = "1.2.0-beta01"
-
-# 2.0.76, skipping 75. Two reasons, both about not overwriting a live object.
-#
-# 2.0.74 is PUBLISHED and the Worker serves R2 objects `immutable`, so
-# republishing it could leave an edge entry handing out one jar for a coordinate
-# whose bytes had changed underneath it. `MoneyFormatter.format`'s third
-# parameter went `Z` -> `Ljava/lang/Boolean;` in this train, so "same coordinate,
-# different ABI" is not hypothetical here. A push to main auto-publishes at
-# whatever this key says, so leaving it at 2.0.74 while changing core's source is
-# the bug — I triggered exactly that and cancelled the run mid-flight.
-#
-# 2.0.75 is also taken: another session published it (complete, all four
-# modules, verified 200) from a Mac before a stop reached it. It is
-# byte-identical to 2.0.74's source and nothing pins it, so it is harmless —
-# but it is NOT free to reuse.
-# 2.0.77 — carries the CheckInNetwork repair (4f8f301). 2.0.76 was LIVE on R2
-# and a push to main auto-publishes at whatever this key says, so leaving it
-# would have republished a live coordinate over `immutable` objects. Verified
-# 404 on all four modules at 2.0.77 before claiming it.
-#
-# 2.0.77 IS NOW PUBLISHED and this key is spent — the next release MUST bump it.
-# Measured 2026-08-14 on maven.tanvrit.com: .pom + .module 200 for all four of
-# core / core-base / core-auth / core-business, and 200 for each -jvm jar.
-#
-# CORRECTED 2026-08-14. The note above used to continue "— and unlike sdk's
-# uploader, `scripts/publish-r2.sh` here has no skip-existing guard, so it would
-# actually land rather than being refused." True when written (`ef915f6`) and
-# falsified one commit later by `42592f2`, which ported the guard. The script is
-# skip-existing by default now: pointing this key at a live coordinate reports
-# `skip`/`DIVERGED`, keeps the published bytes, and (since `af3ff32`) fails the
-# run loudly for shipping nothing. Bumping before a release is still mandatory —
-# just not for the reason that deleted clause gave.
-#
-# 2.0.78 carries NO core source change. It exists because the SDK's own version
-# key is BOTH its publish coordinate and the core it compiles against — there is
-# no way to move one without the other — and the SDK needed a release to ship the
-# fix for a direct message being invisible to the person it was sent to. Core is
-# bumped in lockstep so the SDK has a core at its own version to resolve against.
-# Verified 404 on maven.tanvrit.com for 2.0.79 before taking the number.
-#
-# 2.0.79 carries no core source change. It exists because the SDK needed a
-# release to stop leaking a Compose PRERELEASE into every consumer, and the
-# SDK's version key doubles as the core version it compiles against, so the two
-# move together. See the compose-material3 comment above for what actually
-# changed and why it took two production sites down on 2026-08-22.
-#
-# 2.0.80 DOES carry a core source change, unlike the two before it. `Post` gains
-# `myReaction` — the reaction the CALLING reader has on a post — and
-# `FeedNetwork.react` / `FeedViewModel.reactToPost` hand back the post the server
-# now holds instead of a bare boolean. Without it the client had no way to know it
-# had already reacted in an earlier session, so its optimistic +/-1 ran against a
-# guessed `previous` and the count drifted for exactly the returning guests this
-# product is full of.
-#
-# `reactToPost(String, String)` is BINARY-incompatible (it gained a defaulted
-# callback, so the 2-arg descriptor is gone). That is the shape that becomes a
-# NoSuchMethodError in a guest's browser when a prebuilt SDK module meets a core
-# it was not compiled against. Checked rather than assumed: a descriptor scan
-# across all published 2.0.79 com.tanvrit jars found ZERO references to
-# reactToPost, so nothing prebuilt calls it. Verified 404 on maven.tanvrit.com
-# for 2.0.80 before taking the number.
-#
-# 2.0.81 carries four ADDITIVE model changes and one client fix. No `@SerialName`
-# is renamed or removed, so no stored document or API payload changes meaning.
-#   - `Sale.hsn` + `CreateSaleRequest.hsn` — HSN/SAC captured at the moment of
-#     sale. It was resolved from the live catalogue at PRINT time, so correcting a
-#     product's code silently rewrote the code on invoices already issued and filed.
-#   - `CreateReturnRequestBody.refundAmount` — the record was always written at
-#     ZERO; the merchant's stated figure had no route onto the wire.
-#   - `ReturnRequest` gains the eight credit-note fields (CGST s.34 + Rule 53(1A)).
-#     Without them a credit note lived only on the device that issued it, so the
-#     merchant over-paid tax on goods she had refunded.
-#   - `isAuthRoutePath` now matches `/otp/`. A 401 from `verify-otp-email` is the
-#     server's ANSWER (wrong or expired code), not a dead session — it was being
-#     refresh-retried, spending a second slot on the per-IP verify limiter, and
-#     then firing the global logout.
-#
-# BINARY COMPATIBILITY — this is the shape that becomes a NoSuchMethodError, so it
-# was scanned, not assumed. Adding a field to a Kotlin data class DELETES the old
-# `<init>`/`copy` descriptors, and for these classes the mangled `copy` name moves
-# too (`ReturnRequest.copy-dplLyho` -> `copy-qyto3_0`) because they carry `Money`,
-# a value class. `CreateReturnRequestBody` is the sharpest: it had no Money field,
-# so it loses its no-arg `<init>()V` and its unmangled `copy` entirely.
-# A constant-pool + javap scan of all 240 published 2.0.79 jars/aars and 171 klibs
-# found exactly ONE prebuilt reference to any destroyed descriptor:
-# `commerce`'s `ReturnRepository` calling `ReturnRequest.<init>(...,I,DCM)V`
-# (`MutableStateFlow(ReturnRequest())`). Everything else in every module — `Sale`,
-# `CreateSaleRequest`, `CreateReturnRequestBody` included — reaches these types
-# only through getters or `Companion.serializer()`, and not one of those
-# descriptors changes. `commerce` is `include(":commerce")` in the sdk repo, so a
-# normal full-SDK release rebuilds it.
-#
-# THEREFORE, and this is not optional: DO NOT ship core 2.0.81 without shipping
-# sdk 2.0.81, and never let a consumer bump `tanvrit-core` past `tanvrit` while
-# `commerce` is on the classpath. That combination — and only that one — turns
-# ReturnRepository's field initializer into a NoSuchMethodError (a partial-linkage
-# throw on wasm/JS) the first time Koin builds the returns repository, which on
-# Lekhita is a merchant's browser. Note `platforms/wedding` currently sits at
-# tanvrit 2.0.79 / tanvrit-core 2.0.80 — that direction — and is safe ONLY because
-# it does not pull `commerce` on any target. Verified 404 on maven.tanvrit.com for
-# 2.0.81 (core and core-jvm) before taking the number.
-#
-# 2.0.82 fixes a hang a merchant can actually sit in. `AppViewModel.startLoading`
-# and `stopLoading` each did `scope.launch { emitIsLoading(...) }` on
-# Dispatchers.Default. Two launches are UNORDERED, so a `false` could execute
-# before the `true` that preceded it in program order and leave the shared flag
-# pinned ON. `isLoading` is process-global and conflated, and three screens
-# (message thread, conversation list, store list) decide "this list is empty"
-# from "we have not asked yet" by catching its true->false edge — miss the edge
-# and they wait for one that never comes. Spinner for ever; only a restart
-# clears it. `_isLoadingState` is a MutableStateFlow whose `emit` never
-# suspends, so the dispatch bought nothing but the reordering: the writes are
-# now synchronous and ordered by call order, which is what every caller assumed.
-#
-# No public ABI change — `startLoading`/`stopLoading` keep their descriptors and
-# apiDump is byte-identical; only the internal AppRepository setter changed
-# shape. Verified 404 on maven.tanvrit.com for 2.0.82 before taking the number.
-#
-# 2.0.83 adds the CATALOGUE feature contract — a new merchant concept, not a
-# rename of anything. A catalogue is a named, curated set of products a merchant
-# SHARES with customers ("Wholesale rates", "Diwali gift boxes"); she has several
-# and sends each to different people. It is not the item list (master data the
-# till reads) and not the storefront (one public page per business). Its value
-# lives outside the app in someone else's WhatsApp, so its identity is a link.
-#
-# The design decision worth keeping: a catalogue is read by a customer and acted
-# on, which makes it closer to a QUOTE than to master data. Storing only product
-# ids would mean editing a price on Friday silently rewrote what someone was
-# quoted on Monday — the same defect class as reading HSN from the live catalogue
-# at print time. Hence `CatalogPricing`: LIVE resolves at render, QUOTED captures
-# at share time and carries `validUntil`, because a rate list with no expiry is a
-# liability the merchant cannot withdraw. Item names are captured for the same
-# reason. `PublicCatalog` is a deliberately narrower projection: it crosses to an
-# unauthenticated reader, so it carries no cost price, no stock, no customer
-# data, and prices the SERVER has already resolved — a browser that decided
-# live-vs-quoted for itself would quote the wrong number.
-#
-# Purely additive: a new feature package plus its Koin module. No existing
-# @SerialName, model or signature is touched, so nothing prebuilt can break on
-# it. Verified 404 on maven.tanvrit.com for 2.0.83 before taking the number.
-#
-# 2.0.84 carries NO core source change. It exists because the SDK needed a
-# release to fix a data-corruption race in EmployeeRepository, and the SDK's
-# version key doubles as the core version it compiles against, so the two move
-# together — the same lockstep as 2.0.79. Verified 404 on maven.tanvrit.com for
-# 2.0.84 before taking the number.
-#
-# 2.0.85 likewise carries NO core source change — same lockstep, same reason.
-# The SDK needed a release to make six SnapshotStateList replacements atomic
-# (`clear()` then `addAll()` is two snapshot applies, so the list is genuinely
-# empty in between, and every one of those sites runs on a network thread:
-# readers either render the empty state for a successful fetch or crash
-# iterating across the gap). Verified 404 on maven.tanvrit.com for 2.0.85
-# before taking the number.
-#
-# 2.0.86 adds the STOCK LEDGER contract (com.tanvrit.core.feature.stock): an
-# append-only record of every stock change — what moved, by how much, why, who
-# did it, and what the figure became.
-#
-# It replaces a design in which adjusting stock meant OVERWRITING a number on
-# the product. The merchant was asked for a reason, the reason decided the
-# arithmetic, and then it was discarded; the sheet admitted as much in its own
-# copy — "The reason isn't saved anywhere yet." A shop quietly losing goods
-# could see it was down twelve units with no way to learn whether they were
-# sold, broken or stolen.
-#
-# Two properties are deliberate and load-bearing:
-#  - the client posts an INTENT ("2 damaged"), never an outcome. The server
-#    reads the balance at write time, computes the result, and appends the row
-#    in the same operation — so the ledger and the number it explains cannot
-#    drift apart, and two tills adjusting one product both land instead of the
-#    second silently discarding the first.
-#  - there is no UPDATE and no DELETE, and no `isDeleted`. A ledger whose rows
-#    can be edited answers nothing; a mistake is corrected by posting the
-#    correction, leaving both the error and the fix on the record.
-# STOCKTAKE is the one absolute reason: its quantity is the counted total, so a
-# later count legitimately wins, and the delta it stores is the discrepancy.
-# Purely additive — no existing @SerialName, model or signature is touched.
-# Verified 404 on maven.tanvrit.com for 2.0.86 before taking the number.
-#
-# 2.0.88 carries NO core source change, and that is not an accident to be
-# tidied away later. The sdk/ repo's `pluginVersion` is both halves of one
-# contract — the coordinate its modules publish at AND the `com.tanvrit:core*`
-# version they declare a dependency on — so there is no way to release an SDK
-# without a core at the same number for it to point at. The SDK needed a new
-# number to ship the phone sign-up fix (the signup JWT actually forwarded on
-# REGISTER, exactly one Authorization header, and a token-less new-user answer
-# treated as a failure rather than an empty session); 2.0.87 was already
-# published, and published versions are immutable. So core moves with it.
-# This is the same lockstep 2.0.78 shipped under, for the same reason.
-# Verified 404 on maven.tanvrit.com for 2.0.88 — core, core-base, core-auth,
-# core-business — before taking the number.
-#
-# 2.0.89 carries a real core source change, which is why it is not folded into
-# 2.0.88: that version is already PUBLISHED and published versions are
-# immutable, so a source edit shipped under its number would live on main and
-# never reach a single consumer. Moving the number is what makes the fix real.
-#
-# The change: GatheringPlace.title() crossed detekt's cyclomatic-complexity
-# ceiling (16 against a threshold of 15) and FAILED the blocking publish gate
-# for 2.0.87. The HomeOf roster is split into its own function — it answers a
-# different question ("whose home is this?") and it is where this family grows,
-# so every non-wedding gathering type was pushing title() further over the line.
-# 3.0.1 (2026-09-07): a patch release cut to republish the whole train on a
-# fresh coordinate. 3.0.0 is immutable on maven.tanvrit.com — the publish path
-# skips an object that already exists (maven-proxy/publish-r2.sh) and logs
-# DIVERGED when the new bytes differ, so shipping today's fixes needs a NEW
-# number rather than a re-run. No API change; consumers move by pin alone.
-#
-# 3.0.2 (2026-09-20): re-publish with updated R2 S3 credentials in CI secrets.
-# 3.0.1 exists in R2 but some artifacts failed due to missing S3 API tokens.
-# This patch just ensures clean publish with proper credentials.
-#
-# 3.0.3 (2026-09-21): fix accounting module build on macOS runner by adding
-# explicit repository declarations. SDK 3.0.3 also includes this fix.
-# 3.0.6 (2026-09-23): toolchain train (Gradle 9.7.1, AGP 9.4.1, kover 0.9.9, BCV 0.18.2, navigation3-runtime 1.2.0-beta01) + publish-only K/N host guard; 404 on all five published modules before taking it.
-# 3.0.7 (2026-09-24): Friendly program C1 — additive wire fields and DTOs for chat (clientMessageId,
-# beforeId, projectId, unreadCounts, participants), tasks (paging/scope, clearFields, startDate,
-# assignedTo, subtask add/update/delete) and projects (clearFields); deprecated ConversationEvent.list /
-# MessageEvent.list; missing cert pins log at INFO on js/wasmJs. Adds constructor parameters to
-# Message, Conversation and seven request/response classes, so core and sdk move TOGETHER to 3.0.7.
-# 404 on core, core-base, core-auth and core-business 3.0.7 before taking it.
-pluginVersion = "3.0.7"
-
-turbine = "1.2.1"
-kotest = "6.1.11"
-kover = "0.9.9"
-
-# kotlinx binary-compatibility-validator (R50 / Phase 7).
-# Generates `<module>/api/<module>.api` baseline files. PRs that change the
-# public ABI without refreshing the baseline (`./gradlew apiDump`) fail
-# `./gradlew apiCheck`. No Google Maven creds required (vs. metalava).
-# 0.18.2 fixes a configuration crash on hosts Kotlin/Native does not recognise (linux-aarch64 CI).
-kotlinx-binary-compatibility-validator = "0.18.2"
-# OkHttp — used transitively by ktor-client-okhttp on Android. We add an
-# explicit ref so MockWebServer + okhttp-tls test deps track the same major
-# Ktor 3.4.x ships (5.x).
-okhttp = "5.3.2"
-
-# Sentry — observability backend for CrashReporter (R37 / Phase 9).
-# Latest 7.x stable as of 2026-05. Android pulls in Java transitively, but we
-# pin both refs explicitly so jvm desktop stays in lockstep.
-# iOS ships sentry-cocoa via cinterop (TODO follow-up).
-# JS / wasmJS ship @sentry/browser via npm interop (TODO follow-up).
-sentry-android = "7.18.0"
-sentry-java = "7.18.0"
-
-# detekt — secondary lint, baseline-free at maxIssues:0 over every source set (06#5, 01#14).
-# 1.23.8 is the latest stable 1.x on the Gradle plugin portal (2026-09) supporting
-# Kotlin 2.x KMP. Wired via root subprojects {} so every module gets it.
-detekt = "1.23.8"
+kotlinx-coroutines = "1.11.0"
+kotlinx-serialization = "1.11.0"
+kotlinx-datetime = "0.8.0"
+koin = "4.2.2"
+androidx-activity-compose = "1.13.0"
+androidx-lifecycle = "2.11.0"
+# navigation-compose 2.10.0-beta01 is what CMP 1.12.1 ships with; the default
+# NavHost enter/exit transitions on web/desktop are None on this line, so
+# destinations are declared with tanvritComposable<> (explicit motion).
+androidx-navigation = "2.10.0-beta01"
 
 [libraries]
+# Compose Multiplatform — one version key for all org.jetbrains.compose.* (the
+# plugin's compose.* accessors are deprecated in 1.12).
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+# material3 asks for material-ripple 1.12.0-beta01; nothing else lifts it on
+# wasmJs/iOS, so it is pinned to the Compose version to keep one skiko.
+compose-material-ripple = { module = "org.jetbrains.compose.material:material-ripple", version.ref = "compose-multiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
+compose-material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "compose-material-icons" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "compose-material-icons" }
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-multiplatform" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-multiplatform" }
 
-koin-core = { module = "io.insert-koin:koin-core", version.ref = "koinAndroid" }
+# Tanvrit core (core/ repo — split pin above)
+tanvrit-core = { module = "com.tanvrit:core", version.ref = "tanvrit-core" }
+# core-accounting carries the accounting models + wire DTOs
+# (com.tanvrit.core.feature.accounting.*). Also `api()`-re-exported by
+# com.tanvrit:accounting; declared explicitly so the pin survives a future
+# sdk-side encapsulation change.
+tanvrit-core-accounting = { module = "com.tanvrit:core-accounting", version.ref = "tanvrit-core" }
 
+# Tanvrit SDK (sdk/ repo)
+tanvrit-accounting = { module = "com.tanvrit:accounting", version.ref = "tanvrit" }
+tanvrit-storage = { module = "com.tanvrit:storage", version.ref = "tanvrit" }
+tanvrit-auth = { module = "com.tanvrit:auth", version.ref = "tanvrit" }
+tanvrit-business = { module = "com.tanvrit:business", version.ref = "tanvrit" }
+tanvrit-ui = { module = "com.tanvrit:ui", version.ref = "tanvrit" }
+
+# Kotlin
 kotlin-stdlib-wasm-js = { module = "org.jetbrains.kotlin:kotlin-stdlib-wasm-js", version.ref = "kotlin" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
-kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIo" }
-ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
-# navigation3-runtime — AndroidX KMP artifact (stable). Lighter than
-# navigation3-ui; just the back-stack + NavKey primitives. Added to
-# core so TypeSafeRoute can extend NavKey platform-wide without every
-# consumer needing to opt in.
-androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "androidx-navigation3" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
-turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
-kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+# Ktor client (the engine of TanvritClient is provided per-target by core; the
+# client core is declared transitively through com.tanvrit:core but kept here
+# for tests that want a MockEngine).
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
-# Embedded Ktor server for core-base jvmTest ONLY — real-socket regression tests
-# (connect → zombie → reconnect, offline-queue replay). Never shipped.
-ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
-ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 
-#ktor
-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
-ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
-ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
-ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
-ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
-# MockWebServer for Android cert-pinning unit tests (audit H2 / Phase 4).
-okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version.ref = "okhttp" }
-okhttp-tls = { module = "com.squareup.okhttp3:okhttp-tls", version.ref = "okhttp" }
-ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktorDarwin" }
-ktor-client-wasm = { module = "io.ktor:ktor-client-js-wasm-js", version.ref = "ktor" }
-ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+# DI
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 
-# Sentry — wired in :core for CrashReporter (R37 / Phase 9).
-sentry-android = { module = "io.sentry:sentry-android", version.ref = "sentry-android" }
-sentry-java = { module = "io.sentry:sentry", version.ref = "sentry-java" }
+# androidx
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
+androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
+# Explicit transitive companions — navigation-compose declares these as
+# metadataApiElements deps whose resolution onto the commonMain metadata
+# classpath is unreliable; without them compileCommonMainKotlinMetadata cannot
+# resolve androidx.navigation.{NavHostController, NavBackStackEntry, ...}.
+androidx-navigation-common = { module = "org.jetbrains.androidx.navigation:navigation-common", version.ref = "androidx-navigation" }
+androidx-navigation-runtime = { module = "org.jetbrains.androidx.navigation:navigation-runtime", version.ref = "androidx-navigation" }
 
 [plugins]
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
-vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version = "0.37.0" }
-# kotlinx.serialization COMPILER PLUGIN — versioned with the Kotlin compiler, not the runtime.
-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serializationPlugin" }
-kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
-# R50 / Phase 7 — public ABI tracking for SDK modules. See plugins block in
-# sdk/build.gradle.kts.
-kotlinx-binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "kotlinx-binary-compatibility-validator" }
-# Phase 1 lint baseline — detekt secondary lint, applied via root subprojects {}.
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+# ktlint — CI gate style matches sdk/ and server/ (plugin is catalog-pinned;
+# the ENGINE is pinned separately in composeApp/build.gradle.kts at 1.5.0 and
+# deliberately does not move with the plugin).
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }

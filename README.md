@@ -1,107 +1,72 @@
 # Tanvrit Accounting Platform
 
-A Compose Multiplatform accounting app built on the Tanvrit SDK to manage business financial operations across all platforms.
+Compose Multiplatform accounting app (Android, iOS, Desktop/JVM, Web/WasmJS) on
+the Tanvrit SDK — real-time double-entry bookkeeping with Indian compliance
+(GST, TDS/TCS), bank reconciliation, budgets, fiscal-period controls, and an
+immutable audit trail. Phase 3 of `tanvrit/accounting/MASTER_PLAN.md`.
 
-## What This Does
+## Screens
 
-This app provides a complete accounting solution:
-- **Chart of Accounts** - Hierarchical account management
-- **Voucher Entry** - Sales, purchases, receipts, payments, journals
-- **GST Center** - GSTR-1, GSTR-3B, E-Invoice, E-Way Bill generation
-- **TDS Center** - 26Q/27Q/24Q returns, Form 16/16A
-- **Bank Reconciliation** - Auto-match, manual match, discrepancy report
-- **Multi-Currency** - FX rates, revaluation, hedge accounting
-- **Financial Reports** - Trial Balance, P&L, Balance Sheet, Cash Flow
-- **Audit Trail** - Immutable audit logs with hash chain verification
-- **Budget** - Budgeting, variance analysis, forecasting
+| Screen | Route | Notes |
+|---|---|---|
+| Dashboard | `dashboard` | KPIs (cash, revenue, expenses, net profit, GST liability), top expenses, recent vouchers; 30s auto-refresh |
+| Chart of Accounts | `coa` | Searchable hierarchical tree, type filters, create/edit in a `GlassSheet` |
+| Voucher Entry | `voucher` | Sale/Purchase/Receipt/Payment/Journal/Contra, smart default legs, live Dr=Cr balance bar, offline draft fallback |
+| GST Center | `gst` | GSTR-1 / GSTR-3B generation + validation, e-invoice (IRN), e-way bill, pre-filing health checklist |
+| TDS Center | `tds` | 26Q/27Q/24Q returns, challan linkage, Form 16/16A certificates |
+| Reports | `reports` | Trial Balance, P&L, Balance Sheet, Cash Flow, Ratio Analysis; PDF/Excel/CSV export |
+| Fiscal Periods | `periods` | Open / lock / close, carry-forward of opening balances |
+| Budget | `budget` | Per-account budget lines, budget-vs-actual variance, indicative forecast |
+| Bank Reconciliation | `recon` | CSV statement import, auto-match, manual match, complete, history |
+| Audit Trail | `audit` | Immutable hash-chained event log, filters, before/after diff, integrity verify |
+| System Settings | `settings` | Numbering series, GSTIN/TAN, base currency, fiscal defaults, dark mode |
 
-## Build & Run
-
-### Desktop (Compose Multiplatform)
-```bash
-./gradlew :composeApp:run
-```
-
-### Android
-```bash
-./gradlew :composeApp:assembleDebug
-```
-
-### iOS
-```bash
-# Open iosApp stub in Xcode
-open iosApp/iosApp.xcodeproj
-```
-
-### Web
-```bash
-./gradlew :composeApp:composeWebWasmJsDevelopmentRun
-```
-
-## Dependencies
-
-The app uses the Tanvrit SDK for its core accounting functions:
-- `com.tanvrit:accounting` (core-accounting models + DTOs)
-- `com.tanvrit:business` (repository implementations)
-- `com.tanvrit:storage` (offline-first persistence)
-- `com.tanvrit:auth` (authentication)
-
-The SDK is published to `https://maven.tanvrit.com` as of version 3.0.5.
-
-## Structure
-
-```
-composeApp/
-  src/commonMain/kotlin/com/tanvrit/accounting/
-    App.kt                 # Main app entry
-    Main.kt                # Desktop entry point
-    navigation/
-      Navigation.kt        # Navigation graph
-    screens/
-      DashboardScreen.kt
-      VoucherEntryScreen.kt
-      ChartOfAccountsScreen.kt
-      GstCenterScreen.kt
-      TdsCenterScreen.kt
-      FiscalPeriodsScreen.kt
-      BudgetScreen.kt
-      AuditTrailScreen.kt
-    theme/
-      Theme.kt             # Tanvrit brand tokens
-
-shared/                   # Shared business logic
-  src/commonMain/kotlin/
-    AccountRepository.kt
-
-build.gradle.kts         # Root platform build
-settings.gradle.kts      # Module inclusion
-```
-
-## Deployment
-
-### Web (Cloudflare Pages)
-```bash
-./deploy.sh
-./deploy.sh --platform=web
-```
-
-### Desktop
-- Mac: `build/package-release/dmg`
-- Windows: `build/package-release/msi`
-- Linux: `build/package-release/deb`
-
-### Mobile Deployment
-```bash
-./deploy.sh --platform=android
-./deploy.sh --platform=ios
-```
-
-## Testing
+## Build / Run / Test
 
 ```bash
-./gradlew :composeApp:test
+./gradlew :composeApp:run                          # Desktop (JVM)
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun  # Web dev server (:3000)
+./gradlew :composeApp:assembleDebug                # Android APK
+./gradlew :composeApp:desktopTest                  # Tests
+./gradlew :composeApp:compileKotlinDesktop         # Fastest compile check
+./gradlew ktlintCheck                              # lint gate (engine 1.5.0)
+./gradlew :composeApp:wasmJsBrowserProductionWebpack  # Production web bundle
+./deploy.sh web --dry-run                          # build-only deploy rehearsal
 ```
 
-## Note
+No credentials are needed to build — the SDK resolves from
+`https://maven.tanvrit.com` (unauthenticated Cloudflare proxy), then
+`mavenLocal()` last so a stale local artifact never shadows a published one.
 
-This is Phase 3 under active development - the platform app skeleton is scaffolded but routes not yet wired to real screens (Dashboard screen placeholders only). Once Phase 3 work continues, detailed UI screens will be implemented.
+## SDK integration
+
+Pins live in `gradle/libs.versions.toml` (split `tanvrit` / `tanvrit-core`,
+deliberate — they publish from different repos; never collapse the two refs,
+and never bump either without verifying the artifact for the target that ships
+on `maven.tanvrit.com`).
+
+Modules consumed: `core`, `core-accounting`, `storage`, `auth`, `business`,
+`ui`, `accounting`. Every screen ViewModel talks to the SDK `accounting`
+module — networks (`AccountNetwork`, `VoucherNetwork`, `FiscalPeriodNetwork`,
+`AccountingBudgetNetwork`, `TaxNetwork`, `ReconciliationNetwork`,
+`ReportNetwork`, `AuditNetwork`) for server calls, offline-first repositories
+(`AccountRepository`, `VoucherRepository`, `FiscalPeriodRepository`,
+`BudgetRepository`) for cached reads — via `XxxNetwork.shared()` / Koin
+(`TanvritKoin.get`, modules loaded by `app/SdkInit.kt`).
+
+Bootstrap per platform entry point: `initTanvritAccounting(AppStartupConfig(...))`
+then `App()`. The active business comes from the SDK `BusinessRepository`
+(`AccountingWorkspace`); with no business selected, screens render a guided
+empty state.
+
+## Conventions
+
+- Design 2.0 tokens only — `TanvritDesignSystem.spacing/shapes/elevation/blur/
+  icons`, `Modifier.tanvritPress`, `tanvritComposable<Route>` navigation,
+  `rememberPremiumChartTheme().series` for charts, `Premium*` components. App
+  colors live ONLY in `theme/AccountingTheme.kt`; screens read
+  `MaterialTheme.colorScheme.*` / `TanvritDesignSystem.colors.*`.
+- Money is `com.tanvrit.core.feature.money.Money` (minor-unit `Long`); display
+  via `MoneyFormatter.format(money, currencyCode)`; never `Double` over the wire.
+- `BaseDataClass` models: after `copy()` chain `.preserveBase(source)`.
+- Never rename `@SerialName` values (wire/Mongo/cache format).

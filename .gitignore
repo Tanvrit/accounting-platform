@@ -1,0 +1,23 @@
+# Build output
+build/
+*/build/
+.gradle/
+.kotlin/
+
+# Local config / secrets — never commit
+local.properties
+.env
+.env.*
+*.p8
+*.jks
+*.keystore
+service-account*.json
+
+# Deploy artifacts
+dist/
+kotlin-js-store/
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml

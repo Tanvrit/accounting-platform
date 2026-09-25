@@ -1,20 +1,39 @@
 rootProject.name = "accounting"
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
-        google()
-        gradlePluginPortal()
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
         mavenCentral()
-    }
-    plugins {
-        id("org.jetbrains.kotlin.multiplatform") version "2.4.20"
-        id("org.jetbrains.compose") version "1.6.0"
+        gradlePluginPortal()
+        mavenLocal()
     }
 }
 
+@Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositories {
-        google()
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
         mavenCentral()
+        // Tanvrit SDK + core — Cloudflare Worker proxy (R2-first), no credentials.
+        maven { url = uri("https://maven.tanvrit.com") }
+        // mavenLocal LAST (supply-chain hygiene): remote/pinned coordinates win;
+        // mavenLocal only resolves versions the remotes don't have, so a stale or
+        // poisoned local artifact can never shadow a genuinely published one.
+        mavenLocal()
     }
 }
 

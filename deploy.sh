@@ -1,27 +1,49 @@
-#!/bin/bash
-# Tanvrit Accounting Platform - deployment script
-# Supports web (WasmJS), desktop (macOS via DMG), iOS (via App Store Connect)
+#!/usr/bin/env bash
+# Tanvrit Accounting — manual deploy (WEB via Cloudflare Pages).
+#
+# The preferred path is CI. This script is the outage fallback. It builds the
+# WasmJS production bundle and deploys it with `wrangler pages deploy`.
+#
+# Usage:
+#   ./deploy.sh web          # build wasmJs production + deploy to Pages
+#   ./deploy.sh web --dry-run  # build only, no deploy
+#
+# Requires: CLOUDFLARE_ACCOUNT_ID (+ CLOUDFLARE_API_TOKEN, or a wrangler
+# OAuth session). Set CF_PROJECT to override the default Pages project name.
+set -euo pipefail
 
-set -e
+cd "$(dirname "$0")"
 
-echo "=== Tanvrit Accounting Deploy Script ==="
+CF_PROJECT="${CF_PROJECT:-tanvrit-accounting}"
+DRY_RUN=0
+TARGET="${1:-}"
+shift || true
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=1 ;;
+    esac
+done
 
-# Build WasmJS package (web)
-if [ "$1" = "web" ]; then
-    echo "Building for WasmJS browser..."
-    ./gradlew :composeApp:wasmJsBrowserProductionWebpack
-
-    echo "Deploying to Cloudflare Pages..."
-    echo "(This would upload to Cloudflare Pages via wrangler)
+if [ "$TARGET" != "web" ]; then
+    echo "usage: ./deploy.sh web [--dry-run]" >&2
+    echo "(desktop artifacts: ./gradlew :composeApp:packageDistributionForCurrentOS)" >&2
+    exit 64
 fi
 
-# Build macOS store package (DMG)
-if [ "$1" = "macos" ]; then
-    echo "Building macOS application..."
-    ./gradlew :composeApp:packageReleaseDmg
+echo "==> Building WasmJS production bundle"
+./gradlew :composeApp:wasmJsBrowserProductionWebpack
 
-    echo "Deploying to GitHub Container Registry..."
-    echo "(This would upload the DMG via GH CLI)
+DIST_DIR="composeApp/build/dist/wasmJs/productionExecutable"
+echo "==> Bundle at $DIST_DIR"
+
+if [ "$DRY_RUN" = "1" ]; then
+    echo "==> dry-run: skipping Cloudflare Pages deploy"
+    exit 0
 fi
 
-echo "=== Deploy Complete ==="
+: "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required for deploy}"
+
+echo "==> Deploying to Cloudflare Pages project: $CF_PROJECT"
+npx wrangler pages deploy "$DIST_DIR" --project-name "$CF_PROJECT" --branch main
+
+echo "==> Done. Verify the live URL serves THIS build, not the previous deploy."
