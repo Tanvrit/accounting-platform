@@ -1,0 +1,21 @@
+package fixture.one
+
+// Rule (c) fixture, paired with dup-two.kt.txt.
+@Serializable
+data class SharedName(val a: Int)
+
+@Serializable
+@SerialName("annotated_twice_one")
+data class AnnotatedTwice(val a: Int)
+
+@Serializable
+private data class PrivateTwin(val a: Int)
+
+sealed interface Route {
+    @Serializable
+    data object NestedTwin : Route
+}
+
+@Serializable
+data class LendsNothing(val a: Int)
+data class PlainTwin(val a: Int)

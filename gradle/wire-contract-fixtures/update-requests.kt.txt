@@ -1,0 +1,24 @@
+package fixture
+
+// Rule (a) fixture. Only non-nullable primitives WITH a default inside an Update*Request
+// primary constructor are findings; the trailing comments say what the scanner must do.
+@Serializable
+data class UpdateThingRequest(
+    @SerialName("name") val name: String? = null, // skip: not a primitive
+    @SerialName("is_active") val isActive: Boolean = false, // FLAG
+    @SerialName("count") val count: Int = -1, // FLAG (sentinel)
+    @SerialName("ratio") val ratio: Double? = null, // skip: nullable
+    @SerialName("ids") val ids: List<Int> = emptyList(), // skip: not a bare primitive
+    @SerialName("note") val note: String = "count: Int = 0", // skip: inside a string
+    /* val hidden: Long = 0 */ // skip: inside a comment
+    @SerialName("expires_at") val expiresAt: Long = defaultExpiry(days = 1), // FLAG (nested parens)
+    @SerialName("mode") val mode: Char = 'x', // FLAG
+) {
+    val derived: Int = 0 // skip: body property, not a constructor parameter
+}
+
+data class UpdateOneLineRequest(val flag: Boolean = true, val size: Float? = null, val n: Short = 0) // FLAG flag + n
+
+data class CreateThingRequest(val isActive: Boolean = false) // skip: not Update*Request
+
+data class UpdateThingResponse(val ok: Boolean = false) // skip: not *Request

@@ -1,23 +1,21 @@
+rootProject.name = "accounting"
 pluginManagement {
     repositories {
         google()
         gradlePluginPortal()
         mavenCentral()
-        maven("https://maven.tanvrit.com")
+    }
+    plugins {
+        id("org.jetbrains.kotlin.multiplatform") version "2.4.20"
+        id("org.jetbrains.compose") version "1.6.0"
     }
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
-        maven("https://maven.tanvrit.com")
-        mavenLocal()
     }
 }
 
-rootProject.name = "accounting"
-
 include(":composeApp")
-// Add other modules as needed
