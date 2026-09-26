@@ -30,10 +30,22 @@ if [ "$TARGET" != "web" ]; then
     exit 64
 fi
 
-echo "==> Building WasmJS production bundle"
-./gradlew :composeApp:wasmJsBrowserProductionWebpack
+echo "==> Building WasmJs production distribution"
+# wasmJsBrowserDistribution (not ...ProductionWebpack) — on this KGP line the
+# webpack task alone emits only js/wasm under build/kotlin-webpack/...; the
+# Distribution task assembles the REAL deploy dir incl. index.html,
+# composeResources/ and the sql-wasm.* copied by composeApp/webpack.config.d/.
+./gradlew :composeApp:wasmJsBrowserDistribution
 
 DIST_DIR="composeApp/build/dist/wasmJs/productionExecutable"
+
+# Fail fast if the distribution is incomplete (protects the outage path).
+for required in index.html composeApp.js; do
+    if [ ! -f "$DIST_DIR/$required" ]; then
+        echo "ERROR: $DIST_DIR/$required missing — distribution incomplete" >&2
+        exit 1
+    fi
+done
 echo "==> Bundle at $DIST_DIR"
 
 if [ "$DRY_RUN" = "1" ]; then

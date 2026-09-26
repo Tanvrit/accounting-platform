@@ -16,7 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -44,7 +44,11 @@ import com.tanvrit.ui.theme.TanvritDesignSystem
 
 /** Reports — Trial Balance, P&L, Balance Sheet, Cash Flow, Ratios + export. */
 @Composable
-fun ReportsScreen() {
+fun ReportsScreen(
+    // WIRING(report→ledger): pass nav to AccountLedgerRoute — e.g.
+    // ReportsScreen(onAccountClick = { id -> navController.navigate(AppRoute.AccountLedger(id)) })
+    onAccountClick: (accountId: String) -> Unit = {},
+) {
     val viewModel = rememberViewModel { ReportsViewModel() }
     val state by viewModel.state.collectAsState()
     val spacing = TanvritDesignSystem.spacing
@@ -124,7 +128,7 @@ fun ReportsScreen() {
         }
         Spacer(Modifier.height(spacing.md))
 
-        ScrollableTabRow(selectedTabIndex = state.activeTab.ordinal, edgePadding = TanvritDesignSystem.spacing.none) {
+        SecondaryTabRow(selectedTabIndex = state.activeTab.ordinal) {
             ReportTab.entries.forEach { tab ->
                 Tab(
                     selected = state.activeTab == tab,
@@ -139,7 +143,7 @@ fun ReportsScreen() {
             LoadingPane(Modifier.weight(1f))
         } else {
             when (state.activeTab) {
-                ReportTab.TRIAL_BALANCE -> TrialBalanceTab(state)
+                ReportTab.TRIAL_BALANCE -> TrialBalanceTab(state, onAccountClick)
                 ReportTab.PROFIT_AND_LOSS -> ProfitAndLossTab(state)
                 ReportTab.BALANCE_SHEET -> BalanceSheetTab(state)
                 ReportTab.CASH_FLOW -> CashFlowTab(state)
@@ -170,7 +174,10 @@ private fun SectionCard(
 }
 
 @Composable
-private fun TrialBalanceTab(state: ReportsUiState) {
+private fun TrialBalanceTab(
+    state: ReportsUiState,
+    onAccountClick: (accountId: String) -> Unit,
+) {
     val report = state.trialBalance
     if (report == null) {
         PremiumEmptyState(
@@ -193,6 +200,7 @@ private fun TrialBalanceTab(state: ReportsUiState) {
                     }
                 },
                 supporting = "Dr / Cr",
+                onClick = { onAccountClick(row.accountId) },
                 isStandalone = false,
             )
         }

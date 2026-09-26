@@ -16,8 +16,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -74,7 +74,7 @@ fun ReconciliationScreen() {
         }
         Spacer(Modifier.height(spacing.md))
 
-        TabRow(selectedTabIndex = state.activeTab.ordinal) {
+        PrimaryTabRow(selectedTabIndex = state.activeTab.ordinal) {
             ReconciliationTab.entries.forEach { tab ->
                 Tab(
                     selected = state.activeTab == tab,

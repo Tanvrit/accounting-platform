@@ -1,0 +1,45 @@
+# Release Web — Tanvrit Accounting (wasm app → Cloudflare Pages)
+#
+# Delegates to the reusable template in Tanvrit/artifactory (house pattern,
+# same as platforms/admin). Triggers on push to main.
+#
+# REQUIRED REPO SECRETS (set in GitHub → Settings → Secrets → Actions; the
+# template treats them as optional and SKIPS the deploy silently when absent —
+# a green run with no "deployed=true" output shipped nothing):
+#   CLOUDFLARE_API_TOKEN    — Pages:Edit token for the Tanvrit CF account
+#   CLOUDFLARE_ACCOUNT_ID   — ce3f0ef57641c98d52af95c069bbb6a2
+#   GH_PACKAGES_TOKEN       — Gradle fallback pull of SDK/core from GitHub
+#                             Packages (maven.tanvrit.com R2 is primary)
+#
+# Pages project: tanvrit-accounting (created manually). The LANDING site is a
+# different Pages project (tanvrit-accounting-landing) deployed by
+# deploy-landing.yml — do NOT pass landing_build_dir here; the template would
+# merge it into the app bundle.
+name: Release Web
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'landing/**' # landing ships via deploy-landing.yml
+      - '.github/workflows/deploy-landing.yml'
+  workflow_dispatch:
+jobs:
+  release-web:
+    # Caller permissions the template requires to mint provenance attestations
+    # and read packages (id-token/attestations cannot be granted by inherit).
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+      attestations: write
+    uses: Tanvrit/artifactory/.github/workflows/release-web-template.yml@main
+    with:
+      product: accounting
+      gradle_task: ':composeApp:wasmJsBrowserDistribution'
+      gradle_module: composeApp
+      wasm_output_dir: composeApp/build/dist/wasmJs/productionExecutable
+      landing_build_dir: '' # landing deploys separately (deploy-landing.yml)
+      cf_project_name: tanvrit-accounting
+    secrets: inherit

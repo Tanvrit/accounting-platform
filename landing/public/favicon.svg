@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#121a16"/>
+      <stop offset="1" stop-color="#0a0e0c"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <!-- balanced ledger scale -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="32" cy="19.5" r="2.4" fill="#e2c376"/>
+    <path d="M15 23h34" stroke="#e2c376" stroke-width="3"/>
+    <path d="M32 21.5V47" stroke="#e2c376" stroke-width="3"/>
+    <path d="M23 51h18" stroke="#e2c376" stroke-width="3"/>
+    <g stroke="#3ddc9a" stroke-width="2.4" fill="none">
+      <path d="M15 23l-4.5 10.5M15 23l4.5 10.5"/>
+      <path d="M8.5 33.5a6.5 6.5 0 0 0 13 0"/>
+      <path d="M49 23l-4.5 10.5M49 23l4.5 10.5"/>
+      <path d="M42.5 33.5a6.5 6.5 0 0 0 13 0"/>
+    </g>
+  </g>
+</svg>

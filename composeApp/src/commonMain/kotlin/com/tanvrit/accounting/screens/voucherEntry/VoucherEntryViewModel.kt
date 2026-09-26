@@ -2,16 +2,23 @@ package com.tanvrit.accounting.screens.voucherEntry
 
 import com.tanvrit.accounting.data.AccountingSettingsStore
 import com.tanvrit.accounting.data.AccountingWorkspace
+import com.tanvrit.accounting.data.NumberingSeriesStore
+import com.tanvrit.accounting.data.VoucherTemplate
+import com.tanvrit.accounting.data.VoucherTemplateLeg
+import com.tanvrit.accounting.data.VoucherTemplateStore
+import com.tanvrit.accounting.data.VoucherWorkflowStore
 import com.tanvrit.accounting.network.VoucherNetwork
 import com.tanvrit.accounting.repository.AccountRepository
 import com.tanvrit.accounting.repository.FiscalPeriodRepository
 import com.tanvrit.accounting.repository.VoucherRepository
 import com.tanvrit.core.app.AppViewModel
 import com.tanvrit.core.di.TanvritKoin
+import com.tanvrit.core.extension.preserveBase
 import com.tanvrit.core.feature.accounting.model.Account
 import com.tanvrit.core.feature.accounting.model.FiscalPeriodStatus
 import com.tanvrit.core.feature.accounting.model.Voucher
 import com.tanvrit.core.feature.accounting.model.VoucherLineItem
+import com.tanvrit.core.feature.accounting.model.VoucherStatus
 import com.tanvrit.core.feature.accounting.model.VoucherType
 import com.tanvrit.core.feature.accounting.network.CreateVoucherRequest
 import com.tanvrit.core.feature.accounting.network.PostVoucherRequest
@@ -35,6 +42,13 @@ data class VoucherLineDraft(
     val narration: String = "",
 )
 
+/** A voucher row in the approval queue: effective workflow stage + local approver note. */
+data class ApprovalEntry(
+    val voucher: Voucher,
+    val stage: VoucherWorkflowStage,
+    val approverNote: String = "",
+)
+
 data class VoucherEntryUiState(
     val businessId: String = "",
     val isLoading: Boolean = false,
@@ -46,9 +60,20 @@ data class VoucherEntryUiState(
     val date: String = "",
     val narration: String = "",
     val referenceId: String = "",
+    /** Client-side preview from the business' numbering series (#10) — never a wire field. */
+    val voucherNumber: String = "",
     val lines: List<VoucherLineDraft> = emptyList(),
     /** OFFLINE → saved locally; POSTED/CREATED → server-accepted. */
     val lastOutcome: String = "",
+    val showTemplatePicker: Boolean = false,
+    val showSaveTemplate: Boolean = false,
+    val showApprovals: Boolean = false,
+    val templates: List<VoucherTemplate> = emptyList(),
+    /** Draft/verified vouchers populating the approval queue sheet (#11). */
+    val approvals: List<ApprovalEntry> = emptyList(),
+    /** In-progress approver-note text, keyed by voucher id. */
+    val noteDrafts: Map<String, String> = emptyMap(),
+    val approvalBusy: Boolean = false,
 ) {
     val totalDebit: Money get() = lines.fold(Money.ZERO) { acc, l -> acc + moneyOf(l.debitText) }
     val totalCredit: Money get() = lines.fold(Money.ZERO) { acc, l -> acc + moneyOf(l.creditText) }
@@ -65,12 +90,24 @@ data class VoucherEntryUiState(
  * numbering series) → `postVoucher`. When the network is unreachable the
  * draft is written to the offline-first [VoucherRepository] so the sync
  * engine can push it on reconnect.
+ *
+ * Roadmap #10 surfaces: the `Voucher #` preview comes from the client-local
+ * [NumberingSeriesStore] (consumed once per saved draft; never sent on the
+ * wire — `CreateVoucherRequest` has no number field), and saved templates
+ * ([VoucherTemplateStore]) prefill the legs via [applyTemplate].
+ * Roadmap #11 surfaces: the approval queue ([refreshApprovals]) lists
+ * cached draft/verified vouchers with [VoucherWorkflow]-gated Verify/Post
+ * actions; verification + approver note live in [VoucherWorkflowStore] until
+ * the server grows a VERIFIED status.
  */
 class VoucherEntryViewModel(
     initialVoucherType: String = "SALE",
 ) : AppViewModel() {
     private val workspace: AccountingWorkspace = TanvritKoin.get()
     private val settingsStore: AccountingSettingsStore = TanvritKoin.get()
+    private val numberingStore: NumberingSeriesStore = TanvritKoin.get()
+    private val templateStore: VoucherTemplateStore = TanvritKoin.get()
+    private val workflowStore: VoucherWorkflowStore = TanvritKoin.get()
     private val voucherNetwork = VoucherNetwork.shared()
     private val voucherRepository: VoucherRepository = TanvritKoin.get()
     private val accountRepository: AccountRepository = TanvritKoin.get()
@@ -92,9 +129,21 @@ class VoucherEntryViewModel(
     init {
         scope.launch {
             workspace.businessId.collect { businessId ->
+                templateStore.selectBusiness(businessId)
+                numberingStore.selectBusiness(businessId)
+                workflowStore.selectBusiness(businessId)
                 _state.value =
                     _state.value.copy(businessId = businessId, error = null)
-                if (businessId.isNotBlank()) loadAccounts(businessId)
+                if (businessId.isNotBlank()) {
+                    loadAccounts(businessId)
+                    refreshNumberPreview()
+                    if (_state.value.showApprovals) refreshApprovals()
+                }
+            }
+        }
+        scope.launch {
+            templateStore.templates.collect { templates ->
+                _state.value = _state.value.copy(templates = templates)
             }
         }
     }
@@ -108,7 +157,22 @@ class VoucherEntryViewModel(
     }
 
     fun setVoucherType(type: VoucherType) {
-        _state.value = _state.value.copy(voucherType = type, lines = smartDefaults(type))
+        _state.value =
+            _state.value.copy(
+                voucherType = type,
+                voucherNumber = numberingStore.peekNumber(type),
+                lines = smartDefaults(type),
+            )
+    }
+
+    fun setVoucherNumber(value: String) {
+        _state.value = _state.value.copy(voucherNumber = value)
+    }
+
+    /** Show the active business' next number for the current type (business switch / type switch / after save). */
+    private fun refreshNumberPreview() {
+        if (_state.value.businessId.isBlank()) return
+        _state.value = _state.value.copy(voucherNumber = numberingStore.peekNumber(_state.value.voucherType))
     }
 
     fun updateLine(
@@ -152,6 +216,203 @@ class VoucherEntryViewModel(
         _state.value = _state.value.copy(error = null)
     }
 
+    // ── Templates (roadmap #10) ───────────────────────────────────────────
+
+    fun openTemplatePicker() {
+        _state.value = _state.value.copy(showTemplatePicker = true)
+    }
+
+    fun closeTemplatePicker() {
+        _state.value = _state.value.copy(showTemplatePicker = false)
+    }
+
+    fun openSaveTemplate() {
+        if (_state.value.lines.none { it.accountId.isNotBlank() }) {
+            _state.value = _state.value.copy(error = "Pick an account on at least one line before saving a template")
+            return
+        }
+        _state.value = _state.value.copy(showSaveTemplate = true)
+    }
+
+    fun closeSaveTemplate() {
+        _state.value = _state.value.copy(showSaveTemplate = false)
+    }
+
+    /** Saves the current legs (account + narration + amounts as typed) as a reusable template. */
+    fun saveCurrentAsTemplate(name: String) {
+        val snapshot = _state.value
+        val legs =
+            snapshot.lines
+                .filter { it.accountId.isNotBlank() }
+                .map {
+                    VoucherTemplateLeg(
+                        accountId = it.accountId,
+                        accountCode = it.accountCode,
+                        accountName = it.accountName,
+                        debit = it.debitText.trim(),
+                        credit = it.creditText.trim(),
+                        narration = it.narration.trim(),
+                    )
+                }
+        if (name.isBlank() || legs.isEmpty() || snapshot.businessId.isBlank()) return
+        templateStore.save(name, snapshot.voucherType.code, legs)
+        _state.value =
+            _state.value.copy(
+                showSaveTemplate = false,
+                notice = "Template “${name.trim()}” saved",
+            )
+    }
+
+    /** Replaces the composer with the template's legs and switches to its voucher type. */
+    fun applyTemplate(template: VoucherTemplate) {
+        val type = VoucherType.entries.firstOrNull { it.code == template.voucherType } ?: _state.value.voucherType
+        val lines =
+            template.legs.map { leg ->
+                newLine().copy(
+                    accountId = leg.accountId,
+                    accountCode = leg.accountCode,
+                    accountName = leg.accountName,
+                    debitText = leg.debit,
+                    creditText = leg.credit,
+                    narration = leg.narration,
+                )
+            }
+        _state.value =
+            _state.value.copy(
+                voucherType = type,
+                voucherNumber = numberingStore.peekNumber(type),
+                lines = if (lines.isEmpty()) smartDefaults(type) else lines,
+                showTemplatePicker = false,
+                notice = "Template “${template.name}” applied",
+            )
+    }
+
+    fun deleteTemplate(templateId: String) {
+        templateStore.delete(templateId)
+    }
+
+    // ── Approval workflow (roadmap #11) ───────────────────────────────────
+
+    fun openApprovals() {
+        _state.value = _state.value.copy(showApprovals = true)
+        refreshApprovals()
+    }
+
+    fun closeApprovals() {
+        _state.value = _state.value.copy(showApprovals = false)
+    }
+
+    /**
+     * Reloads the approval queue from the offline-first [VoucherRepository]
+     * cache, lifted by the local verification overlay. CANCELLED/REVERSED and
+     * POSTED vouchers drop out (terminal per [VoucherWorkflow]).
+     */
+    fun refreshApprovals() {
+        val businessId = _state.value.businessId
+        if (businessId.isBlank()) return
+        scope.launch {
+            val vouchers =
+                runCatching { voucherRepository.findByBusinessId(businessId, null, null, null, 0, PAGE_SIZE) }
+                    .getOrDefault(emptyList())
+            val entries =
+                vouchers.mapNotNull { voucher ->
+                    val stage = VoucherWorkflow.stageOf(voucher.status, workflowStore.isVerified(voucher.id))
+                    if (!VoucherWorkflow.isActionable(stage)) {
+                        null
+                    } else {
+                        ApprovalEntry(
+                            voucher = voucher,
+                            stage = stage,
+                            approverNote = workflowStore.noteFor(voucher.id),
+                        )
+                    }
+                }
+            _state.value = _state.value.copy(approvals = entries)
+        }
+    }
+
+    fun setNoteDraft(
+        voucherId: String,
+        note: String,
+    ) {
+        _state.value = _state.value.copy(noteDrafts = _state.value.noteDrafts + (voucherId to note))
+    }
+
+    /** DRAFT → VERIFIED — client-local ([VoucherWorkflow] documents why there is no RPC). */
+    fun verifyVoucher(voucherId: String) {
+        val entry = _state.value.approvals.firstOrNull { it.voucher.id == voucherId } ?: return
+        if (!VoucherWorkflow.allowed(entry.stage, VoucherWorkflowStage.VERIFIED)) {
+            _state.value = _state.value.copy(error = "Only drafts can be verified")
+            return
+        }
+        val noteDraft = _state.value.noteDrafts[voucherId].orEmpty()
+        val note = noteDraft.trim()
+        workflowStore.markVerified(voucherId, workspace.currentUserId(), note)
+        _state.value =
+            _state.value.copy(
+                noteDrafts = _state.value.noteDrafts - voucherId,
+                notice = "Voucher ${entry.voucher.voucherNumber.ifBlank { voucherId }} verified",
+            )
+        refreshApprovals()
+    }
+
+    /** VERIFIED → POSTED through the real `postVoucherAsync`; the local cache is upserted on success. */
+    fun postVerifiedVoucher(voucherId: String) {
+        val snapshot = _state.value
+        val entry = snapshot.approvals.firstOrNull { it.voucher.id == voucherId } ?: return
+        if (!VoucherWorkflow.allowed(entry.stage, VoucherWorkflowStage.POSTED)) {
+            _state.value = snapshot.copy(error = "Only verified vouchers can be posted")
+            return
+        }
+        val businessId = snapshot.businessId
+        if (businessId.isBlank()) return
+        scope.launch {
+            _state.value = _state.value.copy(approvalBusy = true, error = null)
+            voucherNetwork
+                .postVoucherAsync(
+                    PostVoucherRequest(
+                        id = voucherId,
+                        businessId = businessId,
+                        postedBy = workspace.currentUserId(),
+                    ),
+                ).onSuccess { response ->
+                    upsertPosted(response.payload, voucherId)
+                    _state.value =
+                        _state.value.copy(
+                            approvalBusy = false,
+                            notice = "Voucher ${response.payload?.voucherNumber ?: entry.voucher.voucherNumber} posted",
+                        )
+                    refreshApprovals()
+                }.onFailure { postError ->
+                    _state.value =
+                        _state.value.copy(
+                            approvalBusy = false,
+                            error = "Posting failed: ${postError.message}",
+                        )
+                }
+        }
+    }
+
+    /** Successful mutations upsert the local cache; if the payload is missing, flip the cached copy in place. */
+    private suspend fun upsertPosted(
+        payload: Voucher?,
+        voucherId: String,
+    ) {
+        runCatching {
+            if (payload != null) {
+                voucherRepository.update(payload)
+            } else {
+                voucherRepository.findById(voucherId)?.let { local ->
+                    voucherRepository.update(
+                        local
+                            .copy(status = VoucherStatus.POSTED, postedBy = workspace.currentUserId())
+                            .preserveBase(local),
+                    )
+                }
+            }
+        }
+    }
+
     fun submit(andPost: Boolean) {
         val snapshot = _state.value
         val businessId = snapshot.businessId
@@ -180,6 +441,8 @@ class VoucherEntryViewModel(
             voucherNetwork
                 .createVoucherAsync(request)
                 .onSuccess { response ->
+                    // The displayed number was shown on this draft — consume it exactly once.
+                    numberingStore.consumeNumber(snapshot.voucherType)
                     val created = response.payload
                     if (andPost && created != null) {
                         voucherNetwork
@@ -204,6 +467,7 @@ class VoucherEntryViewModel(
                                         isPosting = false,
                                         error = "Created as draft; posting failed: ${postError.message}",
                                         lastOutcome = "DRAFT",
+                                        voucherNumber = numberingStore.peekNumber(snapshot.voucherType),
                                     )
                             }
                     } else {
@@ -217,6 +481,7 @@ class VoucherEntryViewModel(
                     }
                 }.onFailure {
                     // Offline path: persist locally so the sync engine pushes later.
+                    numberingStore.consumeNumber(snapshot.voucherType)
                     persistOffline(null, businessId)
                     _state.value =
                         _state.value.copy(
@@ -257,7 +522,7 @@ class VoucherEntryViewModel(
         val draft =
             voucher ?: Voucher(
                 businessId = businessId,
-                voucherNumber = "",
+                voucherNumber = snapshot.voucherNumber.trim(),
                 voucherType = snapshot.voucherType,
                 date = snapshot.date,
                 narration = snapshot.narration.trim(),
@@ -272,6 +537,7 @@ class VoucherEntryViewModel(
             _state.value.copy(
                 narration = "",
                 referenceId = "",
+                voucherNumber = numberingStore.peekNumber(_state.value.voucherType),
                 lines = smartDefaults(_state.value.voucherType),
             )
     }

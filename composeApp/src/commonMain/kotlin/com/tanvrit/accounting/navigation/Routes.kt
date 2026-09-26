@@ -35,11 +35,20 @@ sealed interface AppRoute {
     @Serializable
     data object Reports : AppRoute
 
+    /** [accountId] is the chart-of-accounts account to drill into (TB row / CoA row → ledger). */
+    @Serializable
+    data class AccountLedger(
+        val accountId: String,
+    ) : AppRoute
+
     @Serializable
     data object FiscalPeriods : AppRoute
 
     @Serializable
     data object Budget : AppRoute
+
+    @Serializable
+    data object Dunning : AppRoute
 
     @Serializable
     data object Reconciliation : AppRoute

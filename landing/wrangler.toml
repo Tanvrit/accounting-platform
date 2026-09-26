@@ -1,0 +1,8 @@
+name = "tanvrit-accounting-landing"
+pages_build_output_dir = "./out"
+
+# Deploy (run from this directory):
+#   npx wrangler pages deploy out
+# or: npm run deploy   (respects CLOUDFLARE_PAGES_DIR override)
+# Domain binding: Pages project → Custom domains → Add → accounting.tanvrit.com
+# (DNS stays in the tanvrit.com Cloudflare zone; see README.md.)

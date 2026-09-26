@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Button
@@ -25,9 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import com.tanvrit.accounting.data.NumberingSeries
+import com.tanvrit.accounting.data.VoucherNumbering
 import com.tanvrit.accounting.screens.common.ChipTone
 import com.tanvrit.accounting.screens.common.ScreenHeader
 import com.tanvrit.accounting.screens.common.StatusChip
+import com.tanvrit.core.feature.accounting.model.VoucherType
 import com.tanvrit.ui.component.lifecycle.rememberViewModel
 import com.tanvrit.ui.theme.TanvritDesignSystem
 import com.tanvrit.ui.theme.TanvritThemeMode
@@ -110,6 +115,26 @@ fun SettingsScreen() {
                 }
                 NumberingField("Journal prefix", state.settings.journalPrefix) { v ->
                     viewModel.update { it.copy(journalPrefix = v) }
+                }
+            }
+        }
+
+        item { SectionTitle("Voucher numbering") }
+        item {
+            SettingsCard {
+                Text(
+                    "Per voucher type, for this business. The next number is auto-filled on a new " +
+                        "voucher and consumed when it is saved. These defaults seed from the " +
+                        "prefixes above until a series is edited here.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                VoucherNumbering.editableTypes.forEach { type ->
+                    NumberingSeriesRow(
+                        type = type,
+                        series = state.numberingFor(type),
+                        onChange = { transform -> viewModel.updateNumbering(type, transform) },
+                    )
                 }
             }
         }
@@ -209,6 +234,67 @@ private fun NumberingField(
         label = { Text(label) },
         singleLine = true,
     )
+}
+
+/** One voucher type's numbering series: prefix / next number / padding width / suffix + live preview. */
+@Composable
+private fun NumberingSeriesRow(
+    type: VoucherType,
+    series: NumberingSeries,
+    onChange: ((NumberingSeries) -> NumberingSeries) -> Unit,
+) {
+    val spacing = TanvritDesignSystem.spacing
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(type.code, style = MaterialTheme.typography.labelLarge)
+        Text(
+            "Next: ${VoucherNumbering.format(series)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
+        OutlinedTextField(
+            value = series.prefix,
+            onValueChange = { v -> onChange { it.copy(prefix = v.trim().uppercase()) } },
+            modifier = Modifier.weight(1.2f),
+            label = { Text("Prefix") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = series.nextNumber.toString(),
+            onValueChange = { v ->
+                v.filter(Char::isDigit).toIntOrNull()?.let { n -> onChange { it.copy(nextNumber = n) } }
+            },
+            modifier = Modifier.weight(1f),
+            label = { Text("Next #") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = series.width.toString(),
+            onValueChange = { v ->
+                v.filter(Char::isDigit).toIntOrNull()?.let { n -> onChange { it.copy(width = n) } }
+            },
+            modifier = Modifier.weight(0.9f),
+            label = { Text("Pad width") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = series.suffix,
+            onValueChange = { v -> onChange { it.copy(suffix = v.trim().uppercase()) } },
+            modifier = Modifier.weight(1f),
+            label = { Text("Suffix") },
+            singleLine = true,
+        )
+    }
 }
 
 @Composable

@@ -221,7 +221,7 @@ private fun currentQuarter(): String {
         Clock.System
             .now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
-            .monthNumber
+            .month.ordinal + 1
     return "Q${((month - 4 + 12) % 12) / 3 + 1}"
 }
 
@@ -231,6 +231,6 @@ private fun currentFinancialYear(): String {
             .now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .date
-    val start = if (now.monthNumber >= 4) now.year else now.year - 1
+    val start = if (now.month.ordinal + 1 >= 4) now.year else now.year - 1
     return "$start-" + ((start + 1) % 100).toString().padStart(2, '0')
 }

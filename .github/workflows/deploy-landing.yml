@@ -1,0 +1,67 @@
+# Deploy Landing — Tanvrit Accounting marketing site (landing/ → Cloudflare Pages)
+#
+# Pages project: tanvrit-accounting-landing (already created; production URL
+# https://tanvrit-accounting-landing.pages.dev). The custom domain
+# accounting.tanvrit.com is bound in the Pages dashboard (one-time, manual:
+# Workers & Pages → project → Custom domains).
+#
+# REQUIRED REPO SECRETS:
+#   CLOUDFLARE_API_TOKEN    — Pages:Edit token for the Tanvrit CF account
+#   CLOUDFLARE_ACCOUNT_ID   — ce3f0ef57641c98d52af95c069bbb6a2
+# Deploy runs ONLY when both secrets are set; otherwise the job fails loudly at
+# the guard step rather than going green while shipping nothing.
+name: Deploy Landing
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/deploy-landing.yml'
+  workflow_dispatch:
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: true
+jobs:
+  deploy:
+    name: landing → tanvrit-accounting-landing
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Guard — CF secrets must exist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID repo secrets are not set. Set them (see workflow header) and re-run."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Build landing (next build → out/)
+        working-directory: landing
+        run: |
+          npm ci
+          npm run build
+          test -f out/index.html || { echo "::error::out/index.html missing — build produced no site"; exit 1; }
+
+      - name: Deploy to Cloudflare Pages
+        working-directory: landing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler@4 pages deploy out --project-name tanvrit-accounting-landing --branch main --commit-dirty=false
+
+      - name: Verify live URL serves this deploy
+        run: |
+          curl -fsS -o /dev/null -w "%{http_code}\n" https://tanvrit-accounting-landing.pages.dev/

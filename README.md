@@ -23,6 +23,10 @@ immutable audit trail. Phase 3 of `tanvrit/accounting/MASTER_PLAN.md`.
 
 ## Build / Run / Test
 
+**Marketing site:** the static landing page for `https://accounting.tanvrit.com`
+lives in `landing/` (Next.js 15 static export → Cloudflare Pages). See
+`landing/README.md`; it deploys independently of this Gradle project.
+
 ```bash
 ./gradlew :composeApp:run                          # Desktop (JVM)
 ./gradlew :composeApp:wasmJsBrowserDevelopmentRun  # Web dev server (:3000)

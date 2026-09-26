@@ -1,0 +1,71 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.points {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.point {
+  display: flex;
+  gap: 16px;
+  padding: 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+
+.iconWrap {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--green);
+  background: rgba(61, 220, 154, 0.09);
+  border: 1px solid rgba(61, 220, 154, 0.18);
+}
+
+.pointTitle {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 6px;
+}
+
+.pointBody {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 780px) {
+  .points {
+    grid-template-columns: 1fr;
+  }
+}

@@ -52,7 +52,11 @@ import com.tanvrit.ui.theme.TanvritDesignSystem
 
 /** Chart of Accounts — searchable, hierarchical tree with create/edit sheet. */
 @Composable
-fun ChartOfAccountsScreen() {
+fun ChartOfAccountsScreen(
+    // WIRING(report→ledger): pass nav to AccountLedgerRoute — e.g.
+    // ChartOfAccountsScreen(onViewLedger = { id -> navController.navigate(AppRoute.AccountLedger(id)) })
+    onViewLedger: (accountId: String) -> Unit = {},
+) {
     val viewModel = rememberViewModel { ChartOfAccountsViewModel() }
     val state by viewModel.state.collectAsState()
     val spacing = TanvritDesignSystem.spacing
@@ -132,6 +136,7 @@ fun ChartOfAccountsScreen() {
                             onToggle = { viewModel.toggleExpanded(node.account.id) },
                             onEdit = { viewModel.openEdit(node.account) },
                             onAddChild = { viewModel.openCreate(node.account.id) },
+                            onViewLedger = { onViewLedger(node.account.id) },
                         )
                     }
                 }
@@ -188,6 +193,7 @@ private fun AccountTreeRow(
     onToggle: () -> Unit,
     onEdit: () -> Unit,
     onAddChild: () -> Unit,
+    onViewLedger: () -> Unit,
 ) {
     val spacing = TanvritDesignSystem.spacing
     Row {
@@ -214,6 +220,7 @@ private fun AccountTreeRow(
                             tone = if (node.account.isActive) ChipTone.Success else ChipTone.Neutral,
                             modifier = Modifier.padding(start = spacing.sm),
                         )
+                        IconButton(onClick = onViewLedger) { Text("Ledger") }
                         IconButton(onClick = onEdit) { Text("Edit") }
                     }
                 },

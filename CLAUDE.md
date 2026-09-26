@@ -62,16 +62,30 @@ composeApp/src/
     App.kt                 # Theme + nav shell
     app/SdkInit.kt         # identity + TanvritSDK.init + module load order
     di/                    # accountingAppModule (workspace + settings store)
-    data/                  # AccountingWorkspace, AccountingSettingsStore
-    navigation/            # Routes.kt (typed), Navigation.kt (NavigationSuite)
+    data/                  # AccountingWorkspace, AccountingSettingsStore,
+                           # NumberingSeriesStore, VoucherTemplateStore,
+                           # VoucherWorkflowStore
+    navigation/            # Routes.kt (typed), Navigation.kt (NavigationBar +
+                           # keyboard shortcut layer + cheat sheet)
     screens/               # one dir per screen — <Name>Screen + <Name>ViewModel
       common/              # shared MoneyText/StatusChip/Dialog/pickers + parse/format
       dashboard|chartOfAccounts|voucherEntry|gstCenter|tdsCenter|reports|
+      ledger|              # drill-down: TB row / CoA row → account ledger
+      dunning|             # receivables aging + reminder letters (client-side)
+      keyboard|            # ShortcutRegistry + hotkey layer (desktop/web)
       fiscalPeriods|budget|reconciliation|auditTrail|settings/
     theme/AccountingTheme.kt
   androidMain/  desktopMain/  iosMain/  wasmJsMain/   # entry points
   commonTest/                                        # pure-Kotlin unit tests
 ```
+
+Repo top level also carries: `landing/` (Next.js static-export marketing site,
+deployed to Pages project `tanvrit-accounting-landing`, custom domain
+accounting.tanvrit.com), `docs/FEATURE-ROADMAP.md` (top-20 plan + waves),
+`.github/workflows/release-web.yml` (artifactory release-web template → Pages
+`tanvrit-accounting`) + `deploy-landing.yml`, and
+`composeApp/webpack.config.d/` (sql.js node-polyfill fallbacks +
+CopyWebpackPlugin for `sql-wasm.*` — required for the wasmJs web bundle).
 
 ## Blast Radius — needs explicit authorization
 

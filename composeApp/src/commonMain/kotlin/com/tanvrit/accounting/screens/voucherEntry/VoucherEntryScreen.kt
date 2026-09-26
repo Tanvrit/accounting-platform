@@ -39,6 +39,7 @@ import com.tanvrit.accounting.screens.common.LoadingPane
 import com.tanvrit.accounting.screens.common.MoneyText
 import com.tanvrit.accounting.screens.common.ScreenHeader
 import com.tanvrit.accounting.screens.common.StatusChip
+import com.tanvrit.accounting.screens.keyboard.tanvritShortcutLayer
 import com.tanvrit.core.feature.accounting.model.Account
 import com.tanvrit.core.feature.accounting.model.VoucherType
 import com.tanvrit.ui.component.lifecycle.rememberViewModel
@@ -58,6 +59,9 @@ private val ENTRY_TYPES =
  * Voucher Entry — single-screen, keyboard-first voucher composer for Sales,
  * Purchase, Receipt, Payment, Journal and Contra. The bottom bar shows the
  * running totals; Post stays disabled until debits equal credits non-zero.
+ * Header actions open the template picker / save-as-template sheet (#10) and
+ * the approval queue (#11); the Voucher # field previews the business'
+ * client-local numbering series.
  */
 @Composable
 fun VoucherEntryScreen(initialVoucherType: String = "SALE") {
@@ -65,10 +69,39 @@ fun VoucherEntryScreen(initialVoucherType: String = "SALE") {
     val state by viewModel.state.collectAsState()
     val spacing = TanvritDesignSystem.spacing
 
-    Column(modifier = Modifier.fillMaxSize().padding(spacing.lg)) {
+    // Voucher-entry keyboard chords (desktop/web): the speed-entry layer.
+    // CTRL+S saves a draft, CTRL+ENTER saves+posts, ALT+ENTER adds a leg.
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(spacing.lg)
+                .tanvritShortcutLayer { chord ->
+                    when (chord) {
+                        "ALT+ENTER" -> {
+                            viewModel.addLine()
+                            true
+                        }
+                        "CTRL+S", "META+S" -> {
+                            viewModel.submit(andPost = false)
+                            true
+                        }
+                        "CTRL+ENTER", "META+ENTER" -> {
+                            viewModel.submit(andPost = true)
+                            true
+                        }
+                        else -> false
+                    }
+                },
+    ) {
         ScreenHeader(
             title = "Voucher entry",
             subtitle = "Double-entry — debits must equal credits",
+            actions = {
+                OutlinedButton(onClick = viewModel::openApprovals) { Text("Approvals") }
+                OutlinedButton(onClick = viewModel::openTemplatePicker) { Text("Templates") }
+                OutlinedButton(onClick = viewModel::openSaveTemplate) { Text("Save as template") }
+            },
         )
 
         state.error?.let {
@@ -97,6 +130,13 @@ fun VoucherEntryScreen(initialVoucherType: String = "SALE") {
                 onValueChange = { v -> viewModel.updateHeader { it.copy(date = v) } },
                 modifier = Modifier.weight(1f),
                 label = { Text("Date (YYYY-MM-DD)") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = state.voucherNumber,
+                onValueChange = { v -> viewModel.setVoucherNumber(v) },
+                modifier = Modifier.weight(1f),
+                label = { Text("Voucher #") },
                 singleLine = true,
             )
             OutlinedTextField(
@@ -167,6 +207,34 @@ fun VoucherEntryScreen(initialVoucherType: String = "SALE") {
                     },
             ) { Text(if (state.isPosting) "Posting…" else "Post voucher") }
         }
+    }
+
+    if (state.showTemplatePicker) {
+        VoucherTemplatePickerSheet(
+            templates = state.templates,
+            onApply = viewModel::applyTemplate,
+            onDelete = { viewModel.deleteTemplate(it.id) },
+            onDismiss = viewModel::closeTemplatePicker,
+        )
+    }
+    if (state.showSaveTemplate) {
+        SaveVoucherTemplateSheet(
+            voucherTypeCode = state.voucherType.code,
+            legCount = state.lines.count { it.accountId.isNotBlank() },
+            onSave = viewModel::saveCurrentAsTemplate,
+            onDismiss = viewModel::closeSaveTemplate,
+        )
+    }
+    if (state.showApprovals) {
+        VoucherApprovalsSheet(
+            entries = state.approvals,
+            noteDrafts = state.noteDrafts,
+            isBusy = state.approvalBusy,
+            onNoteChange = viewModel::setNoteDraft,
+            onVerify = viewModel::verifyVoucher,
+            onPost = viewModel::postVerifiedVoucher,
+            onDismiss = viewModel::closeApprovals,
+        )
     }
 }
 
