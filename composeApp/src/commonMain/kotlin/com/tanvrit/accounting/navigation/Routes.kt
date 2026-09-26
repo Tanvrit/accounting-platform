@@ -51,6 +51,15 @@ sealed interface AppRoute {
     data object Dunning : AppRoute
 
     @Serializable
+    data object Recurring : AppRoute
+
+    @Serializable
+    data object MultiCurrency : AppRoute
+
+    @Serializable
+    data object ImportAccounts : AppRoute
+
+    @Serializable
     data object Reconciliation : AppRoute
 
     @Serializable

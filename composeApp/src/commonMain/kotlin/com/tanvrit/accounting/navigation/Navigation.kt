@@ -7,6 +7,8 @@ import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Assessment
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.CurrencyExchange
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.DateRange
@@ -15,6 +17,7 @@ import androidx.compose.material.icons.outlined.Percent
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -40,11 +43,14 @@ import com.tanvrit.accounting.screens.dashboard.DashboardScreen
 import com.tanvrit.accounting.screens.dunning.DunningScreen
 import com.tanvrit.accounting.screens.fiscalPeriods.FiscalPeriodsScreen
 import com.tanvrit.accounting.screens.gstCenter.GstCenterScreen
+import com.tanvrit.accounting.screens.importWizard.ImportAccountsScreen
 import com.tanvrit.accounting.screens.keyboard.KeyboardCheatSheetSheet
 import com.tanvrit.accounting.screens.keyboard.ShortcutRegistry
 import com.tanvrit.accounting.screens.keyboard.tanvritShortcutLayer
 import com.tanvrit.accounting.screens.ledger.AccountLedgerScreen
+import com.tanvrit.accounting.screens.multiCurrency.MultiCurrencyScreen
 import com.tanvrit.accounting.screens.reconciliation.ReconciliationScreen
+import com.tanvrit.accounting.screens.recurring.RecurringVouchersScreen
 import com.tanvrit.accounting.screens.reports.ReportsScreen
 import com.tanvrit.accounting.screens.settings.SettingsScreen
 import com.tanvrit.accounting.screens.tdsCenter.TdsCenterScreen
@@ -68,6 +74,9 @@ private val topLevelDestinations =
         TopLevelDestination(AppRoute.FiscalPeriods, "Periods", Icons.Outlined.DateRange),
         TopLevelDestination(AppRoute.Budget, "Budget", Icons.Outlined.AccountBalance),
         TopLevelDestination(AppRoute.Dunning, "Dunning", Icons.Outlined.MarkEmailUnread),
+        TopLevelDestination(AppRoute.Recurring, "Recurring", Icons.Outlined.Autorenew),
+        TopLevelDestination(AppRoute.MultiCurrency, "Currency", Icons.Outlined.CurrencyExchange),
+        TopLevelDestination(AppRoute.ImportAccounts, "Import", Icons.Outlined.Upload),
         TopLevelDestination(AppRoute.Reconciliation, "Bank Rec", Icons.Outlined.Sync),
         TopLevelDestination(AppRoute.AuditTrail, "Audit", Icons.AutoMirrored.Outlined.FactCheck),
         TopLevelDestination(AppRoute.Settings, "Settings", Icons.Outlined.Settings),
@@ -166,9 +175,12 @@ fun AppNavigation() {
         ) {
             tanvritComposable<AppRoute.Dashboard> { DashboardScreen() }
             tanvritComposable<AppRoute.ChartOfAccounts> {
-                ChartOfAccountsScreen(onViewLedger = { accountId ->
-                    navController.navigate(AppRoute.AccountLedger(accountId))
-                })
+                ChartOfAccountsScreen(
+                    onViewLedger = { accountId ->
+                        navController.navigate(AppRoute.AccountLedger(accountId))
+                    },
+                    onImport = { navController.navigate(AppRoute.ImportAccounts) },
+                )
             }
             tanvritComposable<AppRoute.VoucherEntry> { entry ->
                 VoucherEntryScreen(initialVoucherType = entry.toRoute<AppRoute.VoucherEntry>().voucherType)
@@ -190,6 +202,11 @@ fun AppNavigation() {
             tanvritComposable<AppRoute.FiscalPeriods> { FiscalPeriodsScreen() }
             tanvritComposable<AppRoute.Budget> { BudgetScreen() }
             tanvritComposable<AppRoute.Dunning> { DunningScreen() }
+            tanvritComposable<AppRoute.Recurring> { RecurringVouchersScreen() }
+            tanvritComposable<AppRoute.MultiCurrency> { MultiCurrencyScreen() }
+            tanvritComposable<AppRoute.ImportAccounts> {
+                ImportAccountsScreen(onBack = { navController.popBackStack() })
+            }
             tanvritComposable<AppRoute.Reconciliation> { ReconciliationScreen() }
             tanvritComposable<AppRoute.AuditTrail> { AuditTrailScreen() }
             tanvritComposable<AppRoute.Settings> { SettingsScreen() }

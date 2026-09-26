@@ -19,12 +19,14 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,6 +58,8 @@ fun ChartOfAccountsScreen(
     // WIRING(report→ledger): pass nav to AccountLedgerRoute — e.g.
     // ChartOfAccountsScreen(onViewLedger = { id -> navController.navigate(AppRoute.AccountLedger(id)) })
     onViewLedger: (accountId: String) -> Unit = {},
+    /** WIRING(import wizard): navigate to the import route — e.g. `onImport = { navController.navigate(AppRoute.ImportAccounts) }`. */
+    onImport: () -> Unit = {},
 ) {
     val viewModel = rememberViewModel { ChartOfAccountsViewModel() }
     val state by viewModel.state.collectAsState()
@@ -66,6 +70,11 @@ fun ChartOfAccountsScreen(
             title = "Chart of Accounts",
             subtitle = "${state.accounts.size} accounts",
             actions = {
+                OutlinedButton(onClick = onImport) {
+                    Icon(Icons.Outlined.Upload, contentDescription = null)
+                    Spacer(Modifier.width(spacing.xs))
+                    Text("Import")
+                }
                 Button(onClick = { viewModel.openCreate() }) {
                     Icon(Icons.Outlined.Add, contentDescription = null)
                     Spacer(Modifier.width(spacing.xs))

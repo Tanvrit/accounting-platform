@@ -21,3 +21,9 @@ kotlin-js-store/
 .DS_Store
 .idea/
 *.iml
+
+# iOS / Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcworkspace/xcuserdata/

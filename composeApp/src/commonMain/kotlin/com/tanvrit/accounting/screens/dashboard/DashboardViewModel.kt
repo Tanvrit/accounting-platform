@@ -3,6 +3,7 @@ package com.tanvrit.accounting.screens.dashboard
 import com.tanvrit.accounting.data.AccountingWorkspace
 import com.tanvrit.accounting.network.ReportNetwork
 import com.tanvrit.accounting.repository.VoucherRepository
+import com.tanvrit.accounting.screens.recurring.RecurringVoucherEngine
 import com.tanvrit.core.app.AppViewModel
 import com.tanvrit.core.di.TanvritKoin
 import com.tanvrit.core.feature.accounting.model.AccountType
@@ -49,6 +50,7 @@ class DashboardViewModel : AppViewModel() {
     private val workspace: AccountingWorkspace = TanvritKoin.get()
     private val reportNetwork = ReportNetwork.shared()
     private val voucherRepository: VoucherRepository = TanvritKoin.get()
+    private val recurringEngine: RecurringVoucherEngine = TanvritKoin.get()
 
     private val _state = MutableStateFlow(DashboardUiState(businessId = workspace.businessId.value))
     val state = _state.asStateFlow()
@@ -99,6 +101,11 @@ class DashboardViewModel : AppViewModel() {
                     profitAndLoss.exceptionOrNull(),
                     cashFlow.exceptionOrNull(),
                 ).firstOrNull()
+
+            // Roadmap #2: recurring schedules draft their due vouchers during any
+            // dashboard refresh (fire-and-forget; failures stay on the schedule's
+            // lastError and show up on the Recurring screen, never here).
+            runCatching { recurringEngine.processDueSchedules(businessId) }
 
             val tb: TrialBalanceReport? = trialBalance.getOrNull()?.payload
             val gstOut =

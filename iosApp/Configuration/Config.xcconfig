@@ -1,0 +1,22 @@
+// Apple Developer Team ID — ten characters, A-Z0-9, from the Apple Developer
+// portal. Blank here on purpose: no assistant may invent one, and a wrong value
+// is worse than none. It is NOT a secret.
+//
+// Setting it turns on code signing: DEVELOPMENT_TEAM in project.pbxproj reads
+// ${TEAM_ID}. Selection of team/profile happens in this local file or in Xcode
+// and is never committed with a value.
+TEAM_ID=
+
+// The bundle identifier is deliberately NOT written
+// `com.tanvrit.accounting$(TEAM_ID)`.
+//
+// That is the Kotlin Multiplatform wizard's default — it appends the team so
+// that several developers on free provisioning profiles do not collide — and it
+// is wrong for a shipping app: the identifier is permanent once anything
+// reaches App Store Connect, so filling in TEAM_ID would silently rename the
+// app. The team belongs in DEVELOPMENT_TEAM and nowhere else.
+PRODUCT_NAME=Accounting
+PRODUCT_BUNDLE_IDENTIFIER=com.tanvrit.accounting
+
+CURRENT_PROJECT_VERSION=1
+MARKETING_VERSION=1.0

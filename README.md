@@ -38,6 +38,12 @@ lives in `landing/` (Next.js 15 static export → Cloudflare Pages). See
 ./deploy.sh web --dry-run                          # build-only deploy rehearsal
 ```
 
+**iOS:** open `iosApp/iosApp.xcodeproj` in Xcode, pick a simulator (or a
+device), and Run the `iosApp` scheme. The project's **Compile Kotlin
+Framework** build phase invokes `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`
+itself, so no manual Gradle step is needed. Signing (team/profile) is
+local-only — see `iosApp/README.md`.
+
 No credentials are needed to build — the SDK resolves from
 `https://maven.tanvrit.com` (unauthenticated Cloudflare proxy), then
 `mavenLocal()` last so a stale local artifact never shadows a published one.
