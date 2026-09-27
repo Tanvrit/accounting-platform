@@ -60,6 +60,16 @@ sealed interface AppRoute {
     data object ImportAccounts : AppRoute
 
     @Serializable
+    data object FixedAssets : AppRoute
+
+    /** Reached from the GST Center "ITC (2B)" action (kept off the bottom bar — it's a task screen). */
+    @Serializable
+    data object ItcWorkspace : AppRoute
+
+    @Serializable
+    data object Consolidation : AppRoute
+
+    @Serializable
     data object Reconciliation : AppRoute
 
     @Serializable

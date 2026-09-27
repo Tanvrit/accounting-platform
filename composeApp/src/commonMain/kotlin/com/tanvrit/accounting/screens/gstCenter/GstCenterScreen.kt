@@ -41,7 +41,7 @@ import com.tanvrit.ui.theme.TanvritDesignSystem
 
 /** GST Center — returns, e-invoice, e-way bill, pre-filing health. */
 @Composable
-fun GstCenterScreen() {
+fun GstCenterScreen(onOpenItc: () -> Unit = {}) {
     val viewModel = rememberViewModel { GstCenterViewModel() }
     val state by viewModel.state.collectAsState()
     val spacing = TanvritDesignSystem.spacing
@@ -50,6 +50,9 @@ fun GstCenterScreen() {
         ScreenHeader(
             title = "GST Center",
             subtitle = "GSTR-1 · GSTR-3B · e-invoice · e-way bill",
+            actions = {
+                OutlinedButton(onClick = onOpenItc) { Text("ITC (2B)") }
+            },
         )
 
         state.error?.let {

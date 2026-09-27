@@ -12,6 +12,8 @@ import androidx.compose.material.icons.outlined.CurrencyExchange
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Domain
+import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.MarkEmailUnread
 import androidx.compose.material.icons.outlined.Percent
 import androidx.compose.material.icons.outlined.Receipt
@@ -39,11 +41,14 @@ import androidx.navigation.toRoute
 import com.tanvrit.accounting.screens.auditTrail.AuditTrailScreen
 import com.tanvrit.accounting.screens.budget.BudgetScreen
 import com.tanvrit.accounting.screens.chartOfAccounts.ChartOfAccountsScreen
+import com.tanvrit.accounting.screens.consolidation.ConsolidationScreen
 import com.tanvrit.accounting.screens.dashboard.DashboardScreen
 import com.tanvrit.accounting.screens.dunning.DunningScreen
 import com.tanvrit.accounting.screens.fiscalPeriods.FiscalPeriodsScreen
+import com.tanvrit.accounting.screens.fixedAssets.FixedAssetsScreen
 import com.tanvrit.accounting.screens.gstCenter.GstCenterScreen
 import com.tanvrit.accounting.screens.importWizard.ImportAccountsScreen
+import com.tanvrit.accounting.screens.itcWorkspace.ItcWorkspaceScreen
 import com.tanvrit.accounting.screens.keyboard.KeyboardCheatSheetSheet
 import com.tanvrit.accounting.screens.keyboard.ShortcutRegistry
 import com.tanvrit.accounting.screens.keyboard.tanvritShortcutLayer
@@ -77,6 +82,8 @@ private val topLevelDestinations =
         TopLevelDestination(AppRoute.Recurring, "Recurring", Icons.Outlined.Autorenew),
         TopLevelDestination(AppRoute.MultiCurrency, "Currency", Icons.Outlined.CurrencyExchange),
         TopLevelDestination(AppRoute.ImportAccounts, "Import", Icons.Outlined.Upload),
+        TopLevelDestination(AppRoute.FixedAssets, "Assets", Icons.Outlined.Domain),
+        TopLevelDestination(AppRoute.Consolidation, "Consolidate", Icons.Outlined.Hub),
         TopLevelDestination(AppRoute.Reconciliation, "Bank Rec", Icons.Outlined.Sync),
         TopLevelDestination(AppRoute.AuditTrail, "Audit", Icons.AutoMirrored.Outlined.FactCheck),
         TopLevelDestination(AppRoute.Settings, "Settings", Icons.Outlined.Settings),
@@ -186,7 +193,10 @@ fun AppNavigation() {
                 VoucherEntryScreen(initialVoucherType = entry.toRoute<AppRoute.VoucherEntry>().voucherType)
             }
             tanvritComposable<AppRoute.VoucherList> { VoucherEntryScreen() }
-            tanvritComposable<AppRoute.GstCenter> { GstCenterScreen() }
+            tanvritComposable<AppRoute.GstCenter> {
+                GstCenterScreen(onOpenItc = { navController.navigate(AppRoute.ItcWorkspace) })
+            }
+            tanvritComposable<AppRoute.ItcWorkspace> { ItcWorkspaceScreen() }
             tanvritComposable<AppRoute.TdsCenter> { TdsCenterScreen() }
             tanvritComposable<AppRoute.Reports> {
                 ReportsScreen(onAccountClick = { accountId ->
@@ -207,6 +217,8 @@ fun AppNavigation() {
             tanvritComposable<AppRoute.ImportAccounts> {
                 ImportAccountsScreen(onBack = { navController.popBackStack() })
             }
+            tanvritComposable<AppRoute.FixedAssets> { FixedAssetsScreen() }
+            tanvritComposable<AppRoute.Consolidation> { ConsolidationScreen() }
             tanvritComposable<AppRoute.Reconciliation> { ReconciliationScreen() }
             tanvritComposable<AppRoute.AuditTrail> { AuditTrailScreen() }
             tanvritComposable<AppRoute.Settings> { SettingsScreen() }
