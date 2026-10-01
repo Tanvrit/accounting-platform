@@ -2,7 +2,9 @@ package com.tanvrit.accounting.di
 
 import com.tanvrit.accounting.data.AccountingSettingsStore
 import com.tanvrit.accounting.data.AccountingWorkspace
+import com.tanvrit.accounting.data.BankRulesStore
 import com.tanvrit.accounting.data.FixedAssetStore
+import com.tanvrit.accounting.data.LocaleStore
 import com.tanvrit.accounting.data.NumberingSeriesStore
 import com.tanvrit.accounting.data.RecurringVoucherStore
 import com.tanvrit.accounting.data.VoucherTemplateStore
@@ -21,7 +23,8 @@ import org.koin.dsl.module
  * `initTanvritAccounting` before this module.
  *
  * The `*Store` singles are app-local state (UserDefaults-backed, per-business)
- * for roadmap #10 (templates + numbering series) and #11 (approval overlay).
+ * for roadmap #10 (templates + numbering series) and #11 (approval overlay);
+ * [LocaleStore] (#15 i18n) and [BankRulesStore] (#16 lite) are client-local.
  */
 val accountingAppModule: Module =
     module {
@@ -34,4 +37,6 @@ val accountingAppModule: Module =
         single { RecurringVoucherEngine() }
         single { FixedAssetStore() }
         single { FixedAssetEngine() }
+        single { LocaleStore() }
+        single { BankRulesStore() }
     }

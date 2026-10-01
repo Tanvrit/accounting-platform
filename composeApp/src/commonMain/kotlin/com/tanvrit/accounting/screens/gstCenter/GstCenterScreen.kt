@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -23,7 +27,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import com.tanvrit.accounting.screens.common.ChipTone
 import com.tanvrit.accounting.screens.common.DropdownPickerField
@@ -270,11 +277,51 @@ private fun EinvoiceTab(
         Button(onClick = { viewModel.generateEinvoice() }, enabled = state.einvoiceVoucherId.isNotBlank()) {
             Text("Generate IRN")
         }
+        // Roadmap #17: render only what the portal actually returned — a blank
+        // IRN shows the existing notice/error chip (set by the ViewModel),
+        // never a fabricated row.
         if (state.einvoiceIrn.isNotBlank()) {
-            PremiumListRow(
-                title = "IRN: ${state.einvoiceIrn}",
-                subtitle = "Ack: ${state.einvoiceAck}",
-                leading = { StatusChip(label = "GENERATED", tone = ChipTone.Success) },
+            EinvoiceResultCard(state)
+        }
+    }
+}
+
+/** IRN result card (roadmap #17) — copyable IRN row + ack number/date chips. */
+@Composable
+private fun EinvoiceResultCard(state: GstCenterUiState) {
+    val spacing = TanvritDesignSystem.spacing
+    val clipboard = LocalClipboardManager.current
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = TanvritDesignSystem.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = TanvritDesignSystem.elevation.e1,
+    ) {
+        Column(modifier = Modifier.padding(spacing.lg), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusChip(label = "GENERATED", tone = ChipTone.Success)
+                Spacer(Modifier.width(spacing.sm))
+                Text(
+                    text = "IRN: ${state.einvoiceIrn}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { clipboard.setText(AnnotatedString(state.einvoiceIrn)) }) {
+                    Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy IRN")
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                if (state.einvoiceAck.isNotBlank()) {
+                    StatusChip(label = "Ack ${state.einvoiceAck}", tone = ChipTone.Info)
+                }
+                if (state.einvoiceAckDate.isNotBlank()) {
+                    StatusChip(label = "Ack date ${state.einvoiceAckDate}", tone = ChipTone.Neutral)
+                }
+            }
+            Text(
+                text = "Signed QR decodes from IRN — visual QR render lands with the print pass (#17)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

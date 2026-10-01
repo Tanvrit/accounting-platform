@@ -41,6 +41,7 @@ data class GstCenterUiState(
     val einvoiceVoucherId: String = "",
     val einvoiceIrn: String = "",
     val einvoiceAck: String = "",
+    val einvoiceAckDate: String = "",
     val ewayVoucherId: String = "",
     val ewayBillNumber: String = "",
     val ewayValidUpto: String = "",
@@ -191,7 +192,16 @@ class GstCenterViewModel : AppViewModel() {
                             isLoading = false,
                             einvoiceIrn = payload?.irn.orEmpty(),
                             einvoiceAck = payload?.acknowledgmentNumber.orEmpty(),
-                            notice = payload?.errorMessage ?: "E-invoice IRN generated",
+                            einvoiceAckDate = payload?.acknowledgmentDate.orEmpty(),
+                            notice =
+                                when {
+                                    payload?.errorMessage != null -> payload.errorMessage
+                                    // Roadmap #17 honesty: a blank IRN is not a success —
+                                    // surface the returned status instead of claiming one.
+                                    payload?.irn.isNullOrBlank() ->
+                                        "E-invoice returned no IRN (status: ${payload?.status?.ifBlank { "unknown" } ?: "unknown"})"
+                                    else -> "E-invoice IRN generated"
+                                },
                             error = payload?.errorCode?.let { code -> "E-invoice error $code" },
                         )
                 }.onFailure {

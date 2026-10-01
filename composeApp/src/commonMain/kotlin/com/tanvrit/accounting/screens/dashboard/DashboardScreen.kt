@@ -74,6 +74,12 @@ fun DashboardScreen() {
             title = "Dashboard",
             subtitle = if (state.asOfDate.isBlank()) "Business overview" else "As of ${state.asOfDate}",
             actions = {
+                // Roadmap #20 honesty stub — polling is what ships; there is no
+                // websocket client. Non-interactive by design.
+                StatusChip(
+                    label = "Live sync: polling every 30s · realtime ledger pushes are server-tracked (roadmap #20)",
+                    tone = ChipTone.Neutral,
+                )
                 IconButton(onClick = { viewModel.refresh() }) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
                 }

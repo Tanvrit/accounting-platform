@@ -26,6 +26,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.tanvrit.accounting.data.LocaleStore
 import com.tanvrit.accounting.screens.auditTrail.AuditTrailScreen
 import com.tanvrit.accounting.screens.budget.BudgetScreen
 import com.tanvrit.accounting.screens.chartOfAccounts.ChartOfAccountsScreen
@@ -47,6 +49,7 @@ import com.tanvrit.accounting.screens.dunning.DunningScreen
 import com.tanvrit.accounting.screens.fiscalPeriods.FiscalPeriodsScreen
 import com.tanvrit.accounting.screens.fixedAssets.FixedAssetsScreen
 import com.tanvrit.accounting.screens.gstCenter.GstCenterScreen
+import com.tanvrit.accounting.screens.i18n.Strings
 import com.tanvrit.accounting.screens.importWizard.ImportAccountsScreen
 import com.tanvrit.accounting.screens.itcWorkspace.ItcWorkspaceScreen
 import com.tanvrit.accounting.screens.keyboard.KeyboardCheatSheetSheet
@@ -60,45 +63,55 @@ import com.tanvrit.accounting.screens.reports.ReportsScreen
 import com.tanvrit.accounting.screens.settings.SettingsScreen
 import com.tanvrit.accounting.screens.tdsCenter.TdsCenterScreen
 import com.tanvrit.accounting.screens.voucherEntry.VoucherEntryScreen
+import com.tanvrit.core.di.TanvritKoin
 import com.tanvrit.ui.navigation.tanvritComposable
 
 private data class TopLevelDestination(
     val route: AppRoute,
-    val label: String,
+    /** `nav.*` key into [Strings] — resolved at render against the active locale. */
+    val labelKey: String,
     val icon: ImageVector,
 )
 
 private val topLevelDestinations =
     listOf(
-        TopLevelDestination(AppRoute.Dashboard, "Dashboard", Icons.Outlined.Dashboard),
-        TopLevelDestination(AppRoute.ChartOfAccounts, "Accounts", Icons.Outlined.AccountTree),
-        TopLevelDestination(AppRoute.VoucherEntry(), "Voucher", Icons.Outlined.Receipt),
-        TopLevelDestination(AppRoute.GstCenter, "GST", Icons.Outlined.CurrencyRupee),
-        TopLevelDestination(AppRoute.TdsCenter, "TDS", Icons.Outlined.Percent),
-        TopLevelDestination(AppRoute.Reports, "Reports", Icons.Outlined.Assessment),
-        TopLevelDestination(AppRoute.FiscalPeriods, "Periods", Icons.Outlined.DateRange),
-        TopLevelDestination(AppRoute.Budget, "Budget", Icons.Outlined.AccountBalance),
-        TopLevelDestination(AppRoute.Dunning, "Dunning", Icons.Outlined.MarkEmailUnread),
-        TopLevelDestination(AppRoute.Recurring, "Recurring", Icons.Outlined.Autorenew),
-        TopLevelDestination(AppRoute.MultiCurrency, "Currency", Icons.Outlined.CurrencyExchange),
-        TopLevelDestination(AppRoute.ImportAccounts, "Import", Icons.Outlined.Upload),
-        TopLevelDestination(AppRoute.FixedAssets, "Assets", Icons.Outlined.Domain),
-        TopLevelDestination(AppRoute.Consolidation, "Consolidate", Icons.Outlined.Hub),
-        TopLevelDestination(AppRoute.Reconciliation, "Bank Rec", Icons.Outlined.Sync),
-        TopLevelDestination(AppRoute.AuditTrail, "Audit", Icons.AutoMirrored.Outlined.FactCheck),
-        TopLevelDestination(AppRoute.Settings, "Settings", Icons.Outlined.Settings),
+        TopLevelDestination(AppRoute.Dashboard, "nav.dashboard", Icons.Outlined.Dashboard),
+        TopLevelDestination(AppRoute.ChartOfAccounts, "nav.accounts", Icons.Outlined.AccountTree),
+        TopLevelDestination(AppRoute.VoucherEntry(), "nav.voucher", Icons.Outlined.Receipt),
+        TopLevelDestination(AppRoute.GstCenter, "nav.gst", Icons.Outlined.CurrencyRupee),
+        TopLevelDestination(AppRoute.TdsCenter, "nav.tds", Icons.Outlined.Percent),
+        TopLevelDestination(AppRoute.Reports, "nav.reports", Icons.Outlined.Assessment),
+        TopLevelDestination(AppRoute.FiscalPeriods, "nav.periods", Icons.Outlined.DateRange),
+        TopLevelDestination(AppRoute.Budget, "nav.budget", Icons.Outlined.AccountBalance),
+        TopLevelDestination(AppRoute.Dunning, "nav.dunning", Icons.Outlined.MarkEmailUnread),
+        TopLevelDestination(AppRoute.Recurring, "nav.recurring", Icons.Outlined.Autorenew),
+        TopLevelDestination(AppRoute.MultiCurrency, "nav.currency", Icons.Outlined.CurrencyExchange),
+        TopLevelDestination(AppRoute.ImportAccounts, "nav.import", Icons.Outlined.Upload),
+        TopLevelDestination(AppRoute.FixedAssets, "nav.assets", Icons.Outlined.Domain),
+        TopLevelDestination(AppRoute.Consolidation, "nav.consolidate", Icons.Outlined.Hub),
+        TopLevelDestination(AppRoute.Reconciliation, "nav.bankrec", Icons.Outlined.Sync),
+        TopLevelDestination(AppRoute.AuditTrail, "nav.audit", Icons.AutoMirrored.Outlined.FactCheck),
+        TopLevelDestination(AppRoute.Settings, "nav.settings", Icons.Outlined.Settings),
     )
 
 /**
  * App navigation shell: NavigationBar + NavHost. Every destination is declared
  * with `tanvritComposable<Route>` so screen transitions carry the Tanvrit
  * motion vocabulary instead of default transitions.
+ *
+ * i18n (roadmap #15): nav-bar labels and the cheat-sheet title/subtitle come
+ * from `Strings.get(lang, "nav.*" / "cheat.*")` against the [LocaleStore]
+ * flow. v1 scope stops here — every screen body stays English; full coverage
+ * is the roadmap #15 follow-up.
  */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+
+    val localeStore = remember { TanvritKoin.get<LocaleStore>() }
+    val lang by localeStore.language.collectAsState()
 
     // Keyboard-first layer (roadmap #12 — Tally-style speed entry). Global
     // chords only; voucher-entry form chords live on that screen itself.
@@ -133,6 +146,7 @@ fun AppNavigation() {
                                 else -> node.hasRoute(route::class)
                             }
                         } == true
+                    val label = Strings.get(lang, destination.labelKey)
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
@@ -142,8 +156,8 @@ fun AppNavigation() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(destination.icon, contentDescription = destination.label) },
-                        label = { Text(destination.label) },
+                        icon = { Icon(destination.icon, contentDescription = label) },
+                        label = { Text(label) },
                     )
                 }
             }
@@ -227,6 +241,8 @@ fun AppNavigation() {
         if (showCheatSheet) {
             KeyboardCheatSheetSheet(
                 registry = shortcutRegistry,
+                title = Strings.get(lang, "cheat.title"),
+                subtitle = Strings.get(lang, "cheat.subtitle"),
                 onDismiss = { showCheatSheet = false },
             )
         }

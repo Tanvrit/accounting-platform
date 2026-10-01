@@ -1,6 +1,7 @@
 package com.tanvrit.accounting.screens.reconciliation
 
 import com.tanvrit.accounting.data.AccountingWorkspace
+import com.tanvrit.accounting.data.BankRulesStore
 import com.tanvrit.accounting.network.ReconciliationNetwork
 import com.tanvrit.accounting.repository.AccountRepository
 import com.tanvrit.core.app.AppViewModel
@@ -45,6 +46,20 @@ data class ReconciliationUiState(
     val selectedBookItemId: String = "",
     val completed: BankReconciliation? = null,
     val history: List<BankReconciliation> = emptyList(),
+    /** Full active chart — bank rules (#16 lite) may suggest any P&L account. */
+    val accounts: List<Account> = emptyList(),
+    val rules: List<BankRule> = emptyList(),
+    val showRulesSheet: Boolean = false,
+    /** Local rule matches against the pasted CSV — advisory, never sent to the server. */
+    val ruleSuggestions: List<RuleSuggestion> = emptyList(),
+)
+
+/** One "rule-suggested (local)" row for the import area (roadmap #16 lite). */
+data class RuleSuggestion(
+    val transactionIndex: Int,
+    val narration: String,
+    val suggestedAccountCode: String,
+    val suggestedAccountName: String,
 )
 
 /**
@@ -56,6 +71,7 @@ class ReconciliationViewModel : AppViewModel() {
     private val workspace: AccountingWorkspace = TanvritKoin.get()
     private val reconciliationNetwork = ReconciliationNetwork.shared()
     private val accountRepository: AccountRepository = TanvritKoin.get()
+    private val bankRulesStore: BankRulesStore = TanvritKoin.get()
 
     private val _state = MutableStateFlow(ReconciliationUiState(businessId = workspace.businessId.value))
     val state = _state.asStateFlow()
@@ -64,10 +80,17 @@ class ReconciliationViewModel : AppViewModel() {
         scope.launch {
             workspace.businessId.collect { businessId ->
                 _state.value = _state.value.copy(businessId = businessId)
+                bankRulesStore.selectBusiness(businessId)
                 if (businessId.isNotBlank()) {
                     loadBankAccounts(businessId)
+                    loadAccounts(businessId)
                     loadHistory(businessId)
                 }
+            }
+        }
+        scope.launch {
+            bankRulesStore.rules.collect { rules ->
+                _state.value = _state.value.copy(rules = rules)
             }
         }
     }
@@ -82,6 +105,11 @@ class ReconciliationViewModel : AppViewModel() {
                         bankAccountId = _state.value.bankAccountId.ifBlank { banks.firstOrNull()?.id ?: "" },
                     )
             }
+    }
+
+    private suspend fun loadAccounts(businessId: String) {
+        runCatching { accountRepository.findByBusinessId(businessId, null, true, 0, PAGE_SIZE) }
+            .onSuccess { accounts -> _state.value = _state.value.copy(accounts = accounts) }
     }
 
     private suspend fun loadHistory(businessId: String) {
@@ -122,6 +150,75 @@ class ReconciliationViewModel : AppViewModel() {
 
     fun clearMessages() {
         _state.value = _state.value.copy(error = null, notice = null)
+    }
+
+    // --- Bank rules (roadmap #16 lite) — client-local only, never hits the server ---
+
+    fun openRulesSheet() {
+        _state.value = _state.value.copy(showRulesSheet = true)
+    }
+
+    fun closeRulesSheet() {
+        _state.value = _state.value.copy(showRulesSheet = false)
+    }
+
+    /** Returns null on success or the validation message to show in the sheet. */
+    fun addBankRule(
+        matchType: BankRuleMatchType,
+        pattern: String,
+        accountId: String,
+        priority: Int,
+    ): String? {
+        val account =
+            _state.value.accounts.firstOrNull { it.id == accountId }
+                ?: return "Pick a suggested account"
+        val rule =
+            BankRule(
+                matchType = matchType,
+                pattern = pattern.trim(),
+                suggestedAccountId = account.id,
+                suggestedAccountCode = account.accountCode,
+                priority = priority,
+            )
+        val error = BankStatementRules.validate(rule)
+        if (error != null) return error
+        bankRulesStore.save(rule)
+        return null
+    }
+
+    fun deleteBankRule(ruleId: String) {
+        bankRulesStore.delete(ruleId)
+    }
+
+    /**
+     * Applies local rules to the pasted (not yet imported) statement. Purely
+     * advisory — the rows are labelled "rule-suggested (local)" in the UI and
+     * are distinct from the server-side auto-match; nothing is posted.
+     */
+    fun applyBankRules() {
+        val s = _state.value
+        val parsed = StatementCsvParser.parse(s.bankAccountId, s.csvInput)
+        val matches = BankStatementRules.applyRules(parsed.transactions, s.rules)
+        val suggestions =
+            matches.mapNotNull { (index, accountId) ->
+                val account = s.accounts.firstOrNull { it.id == accountId } ?: return@mapNotNull null
+                RuleSuggestion(
+                    transactionIndex = index,
+                    narration = parsed.transactions[index].narration,
+                    suggestedAccountCode = account.accountCode,
+                    suggestedAccountName = account.name,
+                )
+            }
+        _state.value =
+            _state.value.copy(
+                ruleSuggestions = suggestions,
+                notice =
+                    if (suggestions.isEmpty()) {
+                        "No local rules matched ${parsed.transactions.size} parsed transaction(s)"
+                    } else {
+                        "${suggestions.size} rule-suggested (local) — advisory only, nothing posted"
+                    },
+            )
     }
 
     fun importStatement() {
@@ -243,5 +340,9 @@ class ReconciliationViewModel : AppViewModel() {
             block(s, s.sessionId)
             _state.value = _state.value.copy(isLoading = false)
         }
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 500
     }
 }

@@ -30,8 +30,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.tanvrit.accounting.data.NumberingSeries
 import com.tanvrit.accounting.data.VoucherNumbering
 import com.tanvrit.accounting.screens.common.ChipTone
+import com.tanvrit.accounting.screens.common.DropdownPickerField
 import com.tanvrit.accounting.screens.common.ScreenHeader
 import com.tanvrit.accounting.screens.common.StatusChip
+import com.tanvrit.accounting.screens.i18n.AppLanguage
 import com.tanvrit.core.feature.accounting.model.VoucherType
 import com.tanvrit.ui.component.lifecycle.rememberViewModel
 import com.tanvrit.ui.theme.TanvritDesignSystem
@@ -68,6 +70,16 @@ fun SettingsScreen() {
                         )
                     }
                 }
+                // Roadmap #15 — v1 localizes the nav bar + cheat sheet header;
+                // screen bodies stay English for now.
+                DropdownPickerField(
+                    label = "Language",
+                    options = AppLanguage.entries,
+                    selected = state.language,
+                    onSelected = { viewModel.setLanguage(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    optionLabel = { it.label },
+                )
             }
         }
 

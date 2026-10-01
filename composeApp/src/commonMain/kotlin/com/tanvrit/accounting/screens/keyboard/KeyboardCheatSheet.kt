@@ -22,23 +22,29 @@ import com.tanvrit.ui.theme.TanvritDesignSystem
 /**
  * The "?" cheat sheet — lists every registered shortcut grouped by section.
  * Opened from the global keyboard layer (SHIFT+"/" or CTRL+K).
+ *
+ * [title]/[subtitle] default to English; the nav shell passes the localized
+ * `cheat.title` / `cheat.subtitle` strings (roadmap #15). The shortcut rows
+ * themselves stay English in v1.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun KeyboardCheatSheetSheet(
     registry: ShortcutRegistry,
     onDismiss: () -> Unit,
+    title: String = "Keyboard shortcuts",
+    subtitle: String = "Tally-style speed entry. Desktop and web only (hardware keyboard).",
 ) {
     val spacing = TanvritDesignSystem.spacing
     GlassSheet(onDismiss = onDismiss) {
         Text(
-            text = "Keyboard shortcuts",
+            text = title,
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(spacing.xs))
         Text(
-            text = "Tally-style speed entry. Desktop and web only (hardware keyboard).",
+            text = subtitle,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

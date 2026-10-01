@@ -3,9 +3,11 @@ package com.tanvrit.accounting.screens.settings
 import com.tanvrit.accounting.data.AccountingSettings
 import com.tanvrit.accounting.data.AccountingSettingsStore
 import com.tanvrit.accounting.data.AccountingWorkspace
+import com.tanvrit.accounting.data.LocaleStore
 import com.tanvrit.accounting.data.NumberingSeries
 import com.tanvrit.accounting.data.NumberingSeriesStore
 import com.tanvrit.accounting.data.VoucherNumbering
+import com.tanvrit.accounting.screens.i18n.AppLanguage
 import com.tanvrit.core.app.AppViewModel
 import com.tanvrit.core.di.TanvritKoin
 import com.tanvrit.core.feature.accounting.model.VoucherType
@@ -18,6 +20,8 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val settings: AccountingSettings = AccountingSettings(),
     val themeMode: TanvritThemeMode = TanvritThemeMode.SYSTEM,
+    /** Active UI language (roadmap #15) — persisted via [LocaleStore]. */
+    val language: AppLanguage = AppLanguage.EN,
     /** Voucher type code ("SALE", …) → numbering series, for the active business. */
     val numbering: Map<String, NumberingSeries> = emptyMap(),
     val saved: Boolean = false,
@@ -37,6 +41,7 @@ class SettingsViewModel : AppViewModel() {
     private val store: AccountingSettingsStore = TanvritKoin.get()
     private val workspace: AccountingWorkspace = TanvritKoin.get()
     private val numberingStore: NumberingSeriesStore = TanvritKoin.get()
+    private val localeStore: LocaleStore = TanvritKoin.get()
 
     private val _state = MutableStateFlow(SettingsUiState(settings = store.settings.value))
     val state = _state.asStateFlow()
@@ -55,6 +60,11 @@ class SettingsViewModel : AppViewModel() {
         scope.launch {
             numberingStore.series.collect { series ->
                 _state.value = _state.value.copy(numbering = series)
+            }
+        }
+        scope.launch {
+            localeStore.language.collect { language ->
+                _state.value = _state.value.copy(language = language)
             }
         }
         _state.value = _state.value.copy(themeMode = TanvritTheme.mode.value)
@@ -76,6 +86,11 @@ class SettingsViewModel : AppViewModel() {
     fun setThemeMode(mode: TanvritThemeMode) {
         TanvritTheme.setMode(mode)
         _state.value = _state.value.copy(themeMode = mode)
+    }
+
+    /** Persists immediately — the nav shell picks it up on next recomposition. */
+    fun setLanguage(language: AppLanguage) {
+        localeStore.setLanguage(language)
     }
 
     fun markSaved() {

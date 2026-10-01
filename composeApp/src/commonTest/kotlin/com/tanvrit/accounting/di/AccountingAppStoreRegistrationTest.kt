@@ -1,5 +1,7 @@
 package com.tanvrit.accounting.di
 
+import com.tanvrit.accounting.data.BankRulesStore
+import com.tanvrit.accounting.data.LocaleStore
 import com.tanvrit.accounting.data.NumberingSeriesStore
 import com.tanvrit.accounting.data.VoucherTemplateStore
 import com.tanvrit.accounting.data.VoucherWorkflowStore
@@ -21,5 +23,14 @@ class AccountingAppStoreRegistrationTest {
         assertTrue(NumberingSeriesStore::class in primaryTypes, "NumberingSeriesStore not registered")
         assertTrue(VoucherTemplateStore::class in primaryTypes, "VoucherTemplateStore not registered")
         assertTrue(VoucherWorkflowStore::class in primaryTypes, "VoucherWorkflowStore not registered")
+    }
+
+    /** Same static assertion for the roadmap #15 (i18n) and #16 (bank rules lite) stores. */
+    @OptIn(KoinInternalApi::class)
+    @Test
+    fun accountingAppModuleRegistersTheI18nAndBankRulesStores() {
+        val primaryTypes = accountingAppModule.mappings.values.map { it.beanDefinition.primaryType }
+        assertTrue(LocaleStore::class in primaryTypes, "LocaleStore not registered")
+        assertTrue(BankRulesStore::class in primaryTypes, "BankRulesStore not registered")
     }
 }
