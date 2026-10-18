@@ -191,6 +191,7 @@ private fun ApprovalRow(
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Verify") }
                 }
+
                 VoucherWorkflowStage.VERIFIED -> {
                     Button(
                         onClick = { onPost(voucher.id) },
@@ -198,7 +199,10 @@ private fun ApprovalRow(
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(if (isBusy) "Posting…" else "Post voucher") }
                 }
-                else -> Unit
+
+                else -> {
+                    Unit
+                }
             }
         }
     }

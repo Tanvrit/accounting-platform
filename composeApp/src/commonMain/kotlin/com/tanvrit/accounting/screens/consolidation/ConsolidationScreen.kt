@@ -93,8 +93,14 @@ fun ConsolidationScreen() {
         }
 
         when {
-            state.businessId.isBlank() -> NoBusinessPane()
-            state.isLoading && state.groups.isEmpty() -> LoadingPane(Modifier.weight(1f))
+            state.businessId.isBlank() -> {
+                NoBusinessPane()
+            }
+
+            state.isLoading && state.groups.isEmpty() -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
             state.isEmpty -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.Hub,
@@ -104,7 +110,10 @@ fun ConsolidationScreen() {
                             "entered by hand — then run consolidation for an OPEN fiscal period.",
                 )
             }
-            else -> ConsolidationBody(state = state, viewModel = viewModel)
+
+            else -> {
+                ConsolidationBody(state = state, viewModel = viewModel)
+            }
         }
     }
 

@@ -82,15 +82,20 @@ fun VoucherEntryScreen(initialVoucherType: String = "SALE") {
                             viewModel.addLine()
                             true
                         }
+
                         "CTRL+S", "META+S" -> {
                             viewModel.submit(andPost = false)
                             true
                         }
+
                         "CTRL+ENTER", "META+ENTER" -> {
                             viewModel.submit(andPost = true)
                             true
                         }
-                        else -> false
+
+                        else -> {
+                            false
+                        }
                     }
                 },
     ) {

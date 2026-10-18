@@ -74,14 +74,21 @@ fun FiscalPeriodsScreen() {
         }
 
         when {
-            state.isLoading -> LoadingPane(Modifier.weight(1f))
-            state.periods.isEmpty() ->
+            state.isLoading -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
+            state.periods.isEmpty() -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.DateRange,
                     title = "No fiscal periods",
                     description = "Create FY → Quarter → Month periods to control posting windows and year-end close.",
                 )
-            else -> PeriodList(state, viewModel)
+            }
+
+            else -> {
+                PeriodList(state, viewModel)
+            }
         }
     }
 
@@ -97,7 +104,7 @@ fun FiscalPeriodsScreen() {
     state.pendingAction?.let { pending ->
         val period = state.periods.firstOrNull { it.id == pending.periodId }
         when (pending.kind) {
-            PendingPeriodAction.Kind.LOCK ->
+            PendingPeriodAction.Kind.LOCK -> {
                 ConfirmDialog(
                     title = "Lock period ${period?.name ?: ""}?",
                     message = "Locked periods reject new vouchers and postings. Unlocking requires a separate authorized action.",
@@ -105,7 +112,9 @@ fun FiscalPeriodsScreen() {
                     onConfirm = { viewModel.confirmPendingAction() },
                     onDismiss = { viewModel.disarmAction() },
                 )
-            PendingPeriodAction.Kind.CLOSE ->
+            }
+
+            PendingPeriodAction.Kind.CLOSE -> {
                 ConfirmDialog(
                     title = "Close period ${period?.name ?: ""}?",
                     message =
@@ -116,6 +125,7 @@ fun FiscalPeriodsScreen() {
                     onDismiss = { viewModel.disarmAction() },
                     destructive = true,
                 )
+            }
         }
     }
 }

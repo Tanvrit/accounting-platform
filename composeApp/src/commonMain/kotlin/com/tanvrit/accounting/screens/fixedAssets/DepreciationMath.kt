@@ -66,7 +66,10 @@ object DepreciationMath {
                         val targetCumulative = depreciable * (index + 1) / idealSlmPeriods(costMinorUnits, salvageMinorUnits, ratePercent)
                         roundHalfUp(targetCumulative - chargedCumulative)
                     }
-                    DepreciationMethod.WDV -> roundHalfUp(bookValue * monthlyRate)
+
+                    DepreciationMethod.WDV -> {
+                        roundHalfUp(bookValue * monthlyRate)
+                    }
                 }
             if (charge <= 0L) break
             val clipped = minOf(charge, bookValue - salvageMinorUnits)

@@ -133,7 +133,7 @@ class ReportsViewModel : AppViewModel() {
         scope.launch {
             _state.value = s.copy(isLoading = true, error = null)
             when (s.activeTab) {
-                ReportTab.TRIAL_BALANCE ->
+                ReportTab.TRIAL_BALANCE -> {
                     reportNetwork
                         .trialBalanceAsync(
                             TrialBalanceRequest(
@@ -145,7 +145,9 @@ class ReportsViewModel : AppViewModel() {
                             onSuccess = { r -> _state.value = _state.value.copy(isLoading = false, trialBalance = r.payload) },
                             onFailure = { e -> _state.value = _state.value.copy(isLoading = false, error = e.message) },
                         )
-                ReportTab.PROFIT_AND_LOSS ->
+                }
+
+                ReportTab.PROFIT_AND_LOSS -> {
                     reportNetwork
                         .profitAndLossAsync(
                             ProfitAndLossRequest(
@@ -158,7 +160,9 @@ class ReportsViewModel : AppViewModel() {
                             onSuccess = { r -> _state.value = _state.value.copy(isLoading = false, profitAndLoss = r.payload) },
                             onFailure = { e -> _state.value = _state.value.copy(isLoading = false, error = e.message) },
                         )
-                ReportTab.BALANCE_SHEET ->
+                }
+
+                ReportTab.BALANCE_SHEET -> {
                     reportNetwork
                         .balanceSheetAsync(
                             BalanceSheetRequest(
@@ -170,7 +174,9 @@ class ReportsViewModel : AppViewModel() {
                             onSuccess = { r -> _state.value = _state.value.copy(isLoading = false, balanceSheet = r.payload) },
                             onFailure = { e -> _state.value = _state.value.copy(isLoading = false, error = e.message) },
                         )
-                ReportTab.CASH_FLOW ->
+                }
+
+                ReportTab.CASH_FLOW -> {
                     reportNetwork
                         .cashFlowAsync(
                             CashFlowRequest(
@@ -183,7 +189,9 @@ class ReportsViewModel : AppViewModel() {
                             onSuccess = { r -> _state.value = _state.value.copy(isLoading = false, cashFlow = r.payload) },
                             onFailure = { e -> _state.value = _state.value.copy(isLoading = false, error = e.message) },
                         )
-                ReportTab.RATIOS ->
+                }
+
+                ReportTab.RATIOS -> {
                     reportNetwork
                         .ratioAnalysisAsync(
                             RatioAnalysisRequest(
@@ -196,6 +204,7 @@ class ReportsViewModel : AppViewModel() {
                             onSuccess = { r -> _state.value = _state.value.copy(isLoading = false, ratios = r.payload) },
                             onFailure = { e -> _state.value = _state.value.copy(isLoading = false, error = e.message) },
                         )
+                }
             }
         }
     }

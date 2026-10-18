@@ -81,8 +81,14 @@ fun DunningScreen() {
         }
 
         when {
-            state.businessId.isBlank() -> NoBusinessPane()
-            state.isLoading && state.parties.isEmpty() -> LoadingPane(Modifier.weight(1f))
+            state.businessId.isBlank() -> {
+                NoBusinessPane()
+            }
+
+            state.isLoading && state.parties.isEmpty() -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
             state.isEmpty -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.MarkEmailUnread,
@@ -90,7 +96,10 @@ fun DunningScreen() {
                     description = "No posted sale invoices with a receivable leg — nothing to remind anyone about.",
                 )
             }
-            else -> DunningBody(state = state, viewModel = viewModel)
+
+            else -> {
+                DunningBody(state = state, viewModel = viewModel)
+            }
         }
     }
 

@@ -75,12 +75,14 @@ fun ItcWorkspaceScreen() {
         }
 
         when {
-            state.businessId.isBlank() ->
+            state.businessId.isBlank() -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.FactCheck,
                     title = "No business selected",
                     description = "Pick a business to reconcile its input tax credit.",
                 )
+            }
+
             else -> {
                 ItcImportCard(state = state, onPaste = viewModel::setPaste, onMatch = viewModel::importAndMatch)
                 Spacer(Modifier.height(spacing.md))

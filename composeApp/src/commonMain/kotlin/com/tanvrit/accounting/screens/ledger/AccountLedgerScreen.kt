@@ -109,14 +109,21 @@ fun AccountLedgerScreen(
         Spacer(Modifier.height(spacing.lg))
 
         when {
-            state.isLoading && state.lines.isEmpty() -> LoadingPane(Modifier.weight(1f))
-            state.isEmpty ->
+            state.isLoading && state.lines.isEmpty() -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
+            state.isEmpty -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.Receipt,
                     title = "No postings",
                     description = "No posted vouchers for this account in the selected range.",
                 )
-            else -> LedgerList(state = state, onLineClick = viewModel::openVoucher)
+            }
+
+            else -> {
+                LedgerList(state = state, onLineClick = viewModel::openVoucher)
+            }
         }
     }
 

@@ -200,12 +200,19 @@ object AccountImportParser {
                     current.append('"')
                     i++
                 }
-                c == '"' -> inQuotes = !inQuotes
+
+                c == '"' -> {
+                    inQuotes = !inQuotes
+                }
+
                 c == delimiter && !inQuotes -> {
                     cells += current.toString().trim()
                     current = StringBuilder()
                 }
-                else -> current.append(c)
+
+                else -> {
+                    current.append(c)
+                }
             }
             i++
         }

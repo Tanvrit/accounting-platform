@@ -84,20 +84,27 @@ fun FixedAssetsScreen() {
         }
 
         when {
-            state.businessId.isBlank() ->
+            state.businessId.isBlank() -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.Domain,
                     title = "No business selected",
                     description = "Pick a business to manage its fixed-asset register.",
                 )
-            state.isLoading && state.assets.isEmpty() -> LoadingPane(Modifier.weight(1f))
-            state.assets.isEmpty() ->
+            }
+
+            state.isLoading && state.assets.isEmpty() -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
+            state.assets.isEmpty() -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.Domain,
                     title = "No fixed assets",
                     description = "Add machinery, vehicles, or equipment — depreciation drafts itself monthly into the journal.",
                 )
-            else ->
+            }
+
+            else -> {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
                     items(state.assets, key = { it.id }) { asset ->
                         AssetRow(
@@ -110,6 +117,7 @@ fun FixedAssetsScreen() {
                         )
                     }
                 }
+            }
         }
     }
 

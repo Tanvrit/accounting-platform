@@ -109,14 +109,19 @@ fun AuditTrailScreen() {
         Spacer(Modifier.height(spacing.lg))
 
         when {
-            state.isLoading -> LoadingPane(Modifier.weight(1f))
-            state.entries.isEmpty() ->
+            state.isLoading -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
+            state.entries.isEmpty() -> {
                 PremiumEmptyState(
                     icon = Icons.AutoMirrored.Outlined.FactCheck,
                     title = "No audit events",
                     description = "Every create/post/reverse/lock in the ledger lands here, hash-chained.",
                 )
-            else ->
+            }
+
+            else -> {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(spacing.xs),
@@ -125,6 +130,7 @@ fun AuditTrailScreen() {
                         AuditRow(entry = entry, onClick = { viewModel.select(entry) })
                     }
                 }
+            }
         }
     }
 

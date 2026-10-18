@@ -141,9 +141,13 @@ fun AppNavigation() {
                     val selected =
                         currentDestination?.hierarchy?.any { node ->
                             when (val route = destination.route) {
-                                is AppRoute.VoucherEntry ->
+                                is AppRoute.VoucherEntry -> {
                                     node.hasRoute<AppRoute.VoucherEntry>() || node.hasRoute<AppRoute.VoucherList>()
-                                else -> node.hasRoute(route::class)
+                                }
+
+                                else -> {
+                                    node.hasRoute(route::class)
+                                }
                             }
                         } == true
                     val label = Strings.get(lang, destination.labelKey)
@@ -176,21 +180,30 @@ fun AppNavigation() {
                                 navController.navigate(AppRoute.Dashboard) { launchSingleTop = true }
                                 true
                             }
+
                             "nav.coa" -> {
                                 navController.navigate(AppRoute.ChartOfAccounts) { launchSingleTop = true }
                                 true
                             }
+
                             "nav.voucher" -> {
                                 navController.navigate(AppRoute.VoucherEntry()) { launchSingleTop = true }
                                 true
                             }
+
                             // false at the root lets Esc bubble to the platform.
-                            "nav.back" -> navController.popBackStack()
+                            "nav.back" -> {
+                                navController.popBackStack()
+                            }
+
                             "ui.cheatSheet" -> {
                                 showCheatSheet = true
                                 true
                             }
-                            else -> false
+
+                            else -> {
+                                false
+                            }
                         }
                     },
         ) {

@@ -291,16 +291,14 @@ class ConsolidationViewModel : AppViewModel() {
                     _state.value =
                         _state.value.copy(generating = false, error = it.message ?: "Consolidation failed")
                 }.onSuccess { response ->
-                    // The generate response carries the refreshed group list,
-                    // not the report — the report is fetched below.
-                    if (response.payload.isNotEmpty()) {
-                        _state.value = _state.value.copy(groups = response.payload)
+                    // The current SDK returns the generated report, not groups.
+                    val report = response.payload
+                    _state.value = _state.value.copy(notice = response.message.ifBlank { null })
+                    if (report != null) {
+                        _state.value = _state.value.copy(generating = false, report = report)
+                    } else {
+                        fetchReport(group, state.periodId)
                     }
-                    _state.value =
-                        _state.value.copy(
-                            notice = response.message.ifBlank { null },
-                        )
-                    fetchReport(group, state.periodId)
                 }
         }
     }

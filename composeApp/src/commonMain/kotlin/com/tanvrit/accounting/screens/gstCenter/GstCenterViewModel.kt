@@ -134,13 +134,19 @@ class GstCenterViewModel : AppViewModel() {
                             gstr1ValidationErrors = response.validationErrors,
                             notice =
                                 when {
-                                    response.validationErrors.isNotEmpty() ->
+                                    response.validationErrors.isNotEmpty() -> {
                                         "GSTR-1 generated with ${response.validationErrors.size} validation issue(s)"
-                                    payload != null ->
+                                    }
+
+                                    payload != null -> {
                                         "GSTR-1 ${payload.status.lowercase()} — " +
                                             "${payload.sections.b2b.size} B2B, ${payload.sections.b2cs.size} B2C-small, " +
                                             "${payload.sections.cdnr.size} credit/debit notes"
-                                    else -> "GSTR-1 request accepted"
+                                    }
+
+                                    else -> {
+                                        "GSTR-1 request accepted"
+                                    }
                                 },
                         )
                 }.onFailure {
@@ -195,12 +201,19 @@ class GstCenterViewModel : AppViewModel() {
                             einvoiceAckDate = payload?.acknowledgmentDate.orEmpty(),
                             notice =
                                 when {
-                                    payload?.errorMessage != null -> payload.errorMessage
+                                    payload?.errorMessage != null -> {
+                                        payload.errorMessage
+                                    }
+
                                     // Roadmap #17 honesty: a blank IRN is not a success —
                                     // surface the returned status instead of claiming one.
-                                    payload?.irn.isNullOrBlank() ->
+                                    payload?.irn.isNullOrBlank() -> {
                                         "E-invoice returned no IRN (status: ${payload?.status?.ifBlank { "unknown" } ?: "unknown"})"
-                                    else -> "E-invoice IRN generated"
+                                    }
+
+                                    else -> {
+                                        "E-invoice IRN generated"
+                                    }
                                 },
                             error = payload?.errorCode?.let { code -> "E-invoice error $code" },
                         )

@@ -207,8 +207,8 @@ kotlin {
             // Web persistence (SDK storage → sql.js): declare the runtime
             // npm dep + the plugin our webpack.config.d/sqljs.js requires
             // (mirrors platforms/ai's proven wasmJsMain block).
-            implementation(npm("sql.js", "1.8.0"))
-            implementation(devNpm("copy-webpack-plugin", "9.1.0"))
+            implementation(npm("sql.js", "1.15.0"))
+            implementation(devNpm("copy-webpack-plugin", "14.0.0"))
         }
     }
 }

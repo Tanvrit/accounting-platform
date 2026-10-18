@@ -22,7 +22,7 @@ subprojects {
         // ktlint ENGINE pin — fleet-wide constant 1.5.0 (sdk/ and server/ pin the
         // same engine). The Gradle plugin version lives in
         // gradle/libs.versions.toml; the engine does not move with it.
-        version.set("1.5.0")
+        version.set("1.8.0")
         android.set(true)
         outputToConsole.set(true)
         ignoreFailures.set(false)

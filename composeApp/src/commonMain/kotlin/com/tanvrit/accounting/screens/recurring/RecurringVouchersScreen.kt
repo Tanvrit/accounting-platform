@@ -81,20 +81,27 @@ fun RecurringVouchersScreen() {
         }
 
         when {
-            state.businessId.isBlank() ->
+            state.businessId.isBlank() -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.Autorenew,
                     title = "No business selected",
                     description = "Pick a business to manage its recurring voucher schedules.",
                 )
-            state.isLoading && state.schedules.isEmpty() -> LoadingPane(Modifier.weight(1f))
-            state.schedules.isEmpty() ->
+            }
+
+            state.isLoading && state.schedules.isEmpty() -> {
+                LoadingPane(Modifier.weight(1f))
+            }
+
+            state.schedules.isEmpty() -> {
                 PremiumEmptyState(
                     icon = Icons.Outlined.Autorenew,
                     title = "No recurring schedules",
                     description = "Create one for rent, salaries, or EMIs — due vouchers draft themselves for review.",
                 )
-            else ->
+            }
+
+            else -> {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
                     items(state.schedules, key = { it.id }) { schedule ->
                         ScheduleRow(
@@ -107,6 +114,7 @@ fun RecurringVouchersScreen() {
                         )
                     }
                 }
+            }
         }
     }
 

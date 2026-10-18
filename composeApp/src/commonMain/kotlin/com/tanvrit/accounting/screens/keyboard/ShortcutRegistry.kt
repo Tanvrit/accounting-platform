@@ -61,7 +61,7 @@ class ShortcutRegistry {
                     "CMD",
                     "COMMAND",
                     "META",
-                    ->
+                    -> {
                         modifiers +=
                             if (upper == "CONTROL") {
                                 "CTRL"
@@ -70,12 +70,18 @@ class ShortcutRegistry {
                             } else {
                                 upper
                             }
+                    }
 
                     "ALT",
                     "OPTION",
-                    -> modifiers += "ALT"
+                    -> {
+                        modifiers += "ALT"
+                    }
 
-                    "SHIFT" -> modifiers += "SHIFT"
+                    "SHIFT" -> {
+                        modifiers += "SHIFT"
+                    }
+
                     else -> {
                         require(key.isEmpty()) { "Chord has two keys: '$chord'" }
                         key = canonicalKey(upper)

@@ -238,12 +238,19 @@ object ItcImportParser {
                     current.append('"')
                     i++
                 }
-                c == '"' -> inQuotes = !inQuotes
+
+                c == '"' -> {
+                    inQuotes = !inQuotes
+                }
+
                 c == delimiter && !inQuotes -> {
                     out += current.toString()
                     current.clear()
                 }
-                else -> current.append(c)
+
+                else -> {
+                    current.append(c)
+                }
             }
             i++
         }

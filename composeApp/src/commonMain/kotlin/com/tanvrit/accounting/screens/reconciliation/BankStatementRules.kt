@@ -52,18 +52,28 @@ object BankStatementRules {
         if (rule.pattern.isBlank()) return "Pattern is blank"
         if (rule.suggestedAccountId.isBlank()) return "Pick a suggested account"
         return when (rule.matchType) {
-            BankRuleMatchType.CONTAINS, BankRuleMatchType.STARTS_WITH, BankRuleMatchType.EQUALS -> null
-            BankRuleMatchType.REGEX_SAFE ->
+            BankRuleMatchType.CONTAINS, BankRuleMatchType.STARTS_WITH, BankRuleMatchType.EQUALS -> {
+                null
+            }
+
+            BankRuleMatchType.REGEX_SAFE -> {
                 when {
-                    rule.pattern.length > MAX_PATTERN_LENGTH -> "Pattern longer than $MAX_PATTERN_LENGTH chars"
-                    NESTED_QUANTIFIER.containsMatchIn(rule.pattern) ->
+                    rule.pattern.length > MAX_PATTERN_LENGTH -> {
+                        "Pattern longer than $MAX_PATTERN_LENGTH chars"
+                    }
+
+                    NESTED_QUANTIFIER.containsMatchIn(rule.pattern) -> {
                         "Nested quantified groups (e.g. (a+)+) are rejected — catastrophic backtracking risk"
-                    else ->
+                    }
+
+                    else -> {
                         runCatching { Regex(rule.pattern) }.fold(
                             onSuccess = { null },
                             onFailure = { "Invalid regex: ${it.message}" },
                         )
+                    }
                 }
+            }
         }
     }
 
@@ -73,12 +83,22 @@ object BankStatementRules {
         narration: String,
     ): Boolean =
         when (rule.matchType) {
-            BankRuleMatchType.CONTAINS -> narration.contains(rule.pattern, ignoreCase = true)
-            BankRuleMatchType.STARTS_WITH -> narration.startsWith(rule.pattern, ignoreCase = true)
-            BankRuleMatchType.EQUALS -> narration.equals(rule.pattern, ignoreCase = true)
-            BankRuleMatchType.REGEX_SAFE ->
+            BankRuleMatchType.CONTAINS -> {
+                narration.contains(rule.pattern, ignoreCase = true)
+            }
+
+            BankRuleMatchType.STARTS_WITH -> {
+                narration.startsWith(rule.pattern, ignoreCase = true)
+            }
+
+            BankRuleMatchType.EQUALS -> {
+                narration.equals(rule.pattern, ignoreCase = true)
+            }
+
+            BankRuleMatchType.REGEX_SAFE -> {
                 runCatching { Regex(rule.pattern, RegexOption.IGNORE_CASE).containsMatchIn(narration) }
                     .getOrDefault(false)
+            }
         }
 
     /**

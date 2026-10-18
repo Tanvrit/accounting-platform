@@ -81,6 +81,7 @@ object ItcMatcher {
                             rowTax,
                         )
                 }
+
                 else -> {
                     val toleranceMatch =
                         candidates.firstOrNull { v ->
@@ -101,6 +102,7 @@ object ItcMatcher {
                                     0L,
                                 )
                         }
+
                         else -> {
                             val head = candidates.first()
                             consumed += voucherKey(head)

@@ -92,10 +92,17 @@ fun DashboardScreen() {
         }
 
         when {
-            state.businessId.isBlank() -> NoWorkspacePane()
-            state.isLoading && state.recentVouchers.isEmpty() && state.totalRevenue == state.totalExpenses ->
+            state.businessId.isBlank() -> {
+                NoWorkspacePane()
+            }
+
+            state.isLoading && state.recentVouchers.isEmpty() && state.totalRevenue == state.totalExpenses -> {
                 LoadingPane(Modifier.weight(1f))
-            else -> DashboardBody(state = state)
+            }
+
+            else -> {
+                DashboardBody(state = state)
+            }
         }
     }
 }

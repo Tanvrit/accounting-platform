@@ -151,27 +151,32 @@ class FiscalPeriodsViewModel : AppViewModel() {
             _state.value = _state.value.copy(isLoading = true, error = null)
             val result =
                 when (pending.kind) {
-                    PendingPeriodAction.Kind.LOCK ->
-                        fiscalPeriodNetwork.lockFiscalPeriodAsync(
-                            LockFiscalPeriodRequest(
-                                id = pending.periodId,
-                                businessId = businessId,
-                                lockedBy = workspace.currentUserId(),
-                            ),
-                        )
-                    PendingPeriodAction.Kind.CLOSE ->
-                        fiscalPeriodNetwork.closeFiscalPeriodAsync(
-                            CloseFiscalPeriodRequest(
-                                id = pending.periodId,
-                                businessId = businessId,
-                                closedBy = workspace.currentUserId(),
-                                carryForward = true,
-                            ),
-                        )
+                    PendingPeriodAction.Kind.LOCK -> {
+                        fiscalPeriodNetwork
+                            .lockFiscalPeriodAsync(
+                                LockFiscalPeriodRequest(
+                                    id = pending.periodId,
+                                    businessId = businessId,
+                                    lockedBy = workspace.currentUserId(),
+                                ),
+                            ).map { it.payload }
+                    }
+
+                    PendingPeriodAction.Kind.CLOSE -> {
+                        fiscalPeriodNetwork
+                            .closeFiscalPeriodAsync(
+                                CloseFiscalPeriodRequest(
+                                    id = pending.periodId,
+                                    businessId = businessId,
+                                    closedBy = workspace.currentUserId(),
+                                    carryForward = true,
+                                ),
+                            ).map { it.payload }
+                    }
                 }
             result
-                .onSuccess { response ->
-                    response.payload?.let { runCatching { fiscalPeriodRepository.update(it) } }
+                .onSuccess { period ->
+                    period?.let { runCatching { fiscalPeriodRepository.update(it) } }
                     val verb = if (pending.kind == PendingPeriodAction.Kind.LOCK) "locked" else "closed"
                     _state.value = _state.value.copy(isLoading = false, notice = "Period $verb")
                     refresh()
@@ -209,7 +214,8 @@ class FiscalPeriodsViewModel : AppViewModel() {
                     _state.value =
                         _state.value.copy(
                             isLoading = false,
-                            notice = "Opening balances carried forward (${response.payload?.name ?: "target"} period)",
+                            notice = "Opening balances carried forward (${response.openingBalancesCreated} created)",
+                            error = response.errors.takeIf { it.isNotEmpty() }?.joinToString("; "),
                         )
                     refresh()
                 }.onFailure {

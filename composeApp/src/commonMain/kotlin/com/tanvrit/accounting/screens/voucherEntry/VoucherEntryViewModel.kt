@@ -496,12 +496,25 @@ class VoucherEntryViewModel(
 
     private fun validate(state: VoucherEntryUiState): String? =
         when {
-            state.date.isBlank() -> "Voucher date is required"
-            state.lines.count { it.accountId.isNotBlank() } < 2 -> "Pick an account on at least two lines"
-            state.lines.any { it.accountId.isBlank() && (it.debitText.isNotBlank() || it.creditText.isNotBlank()) } ->
+            state.date.isBlank() -> {
+                "Voucher date is required"
+            }
+
+            state.lines.count { it.accountId.isNotBlank() } < 2 -> {
+                "Pick an account on at least two lines"
+            }
+
+            state.lines.any { it.accountId.isBlank() && (it.debitText.isNotBlank() || it.creditText.isNotBlank()) } -> {
                 "Every line with an amount needs an account"
-            !state.isBalanced -> "Debits must equal credits and be non-zero"
-            else -> null
+            }
+
+            !state.isBalanced -> {
+                "Debits must equal credits and be non-zero"
+            }
+
+            else -> {
+                null
+            }
         }
 
     private suspend fun resolveOpenPeriodId(
