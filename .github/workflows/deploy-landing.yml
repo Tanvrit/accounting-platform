@@ -24,11 +24,16 @@ concurrency:
 jobs:
   deploy:
     name: landing → tanvrit-accounting-landing
-    runs-on: ubuntu-latest
+    runs-on:
+      group: tanvrit
+      labels: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
+      - name: Prepare macOS CI tools
+        if: runner.os == 'macOS'
+        uses: tanvrit/artifactory/.github/actions/macos-ci-tools@main
       - name: Guard — CF secrets must exist
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

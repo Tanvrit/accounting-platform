@@ -1,3 +1,5 @@
+> CI routing (2026-10-19): portable jobs default to `tanvrit` / `[self-hosted, macOS, ARM64]`. Native OS builds and host-specific maintenance keep their required hosts. Current setup and exceptions: [CI runners](https://github.com/Tanvrit/artifactory/blob/main/docs/ci-runners.md). Older routing notes below describe the previous fleet.
+
 <!-- Canonical agent guide. AGENTS.md is the tool-neutral mirror of this file. -->
 # Tanvrit Accounting — Compose Multiplatform accounting platform
 
