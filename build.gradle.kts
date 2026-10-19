@@ -48,3 +48,17 @@ plugins.withType<org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnPlugin> {
         resolution("ws", "8.21.0")
     }
 }
+
+// Mocha 12 removes vulnerable serializer/diff dependencies and supports the managed Node runtimes.
+plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
+    rootProject.extensions.configure<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension> {
+        versions.mocha.version = "12.0.3"
+        versions.kotlinWebHelpers.version = "3.5.4"
+    }
+}
+plugins.withType<org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsPlugin> {
+    rootProject.extensions.configure<org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsRootExtension> {
+        versions.mocha.version = "12.0.3"
+        versions.kotlinWebHelpers.version = "3.5.4"
+    }
+}
