@@ -35,3 +35,16 @@ subprojects {
         }
     }
 }
+
+// Ktor's Node transport metadata still requests ws 8.20.1. Use the compatible
+// 8.x security patch for both JS and Wasm dependency graphs (GHSA-96hv-2xvq-fx4p).
+plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
+    rootProject.extensions.configure<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension> {
+        resolution("ws", "8.21.0")
+    }
+}
+plugins.withType<org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnPlugin> {
+    rootProject.extensions.configure<org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootExtension> {
+        resolution("ws", "8.21.0")
+    }
+}
